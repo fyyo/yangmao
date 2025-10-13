@@ -64,7 +64,7 @@ async function fetchIxbkPosts() {
 /**
  * 解析HTML提取线报信息
  */
-function parseHtml(html) {
+async function parseHtml(html) {
   const posts = [];
   
   // 使用正则表达式提取文章列表
@@ -122,15 +122,37 @@ function parseHtml(html) {
         publish_time: parseTime(timeStr),
         comments: comments,
         quality_score: calculateQualityScore(title, content, category, comments, timeStr),
+        needDetail: true, // 标记需要获取详情
       });
     }
   }
   
   // 按质量分数排序并过滤低质量内容
-  return posts
+  const filteredPosts = posts
     .filter(post => post.quality_score >= 60)
     .sort((a, b) => b.quality_score - a.quality_score)
-    .slice(0, 50);
+    .slice(0, 20); // 先取20条，因为要爬详情页
+  
+  // 并发获取详情页内容
+  const postsWithDetail = await Promise.all(
+    filteredPosts.map(async (post) => {
+      try {
+        const detail = await fetchDetailContent(post.url);
+        if (detail) {
+          post.content = detail.content;
+          post.links = detail.links;
+        }
+        delete post.needDetail;
+        return post;
+      } catch (error) {
+        console.error(`获取详情失败 ${post.url}:`, error);
+        delete post.needDetail;
+        return post;
+      }
+    })
+  );
+  
+  return postsWithDetail;
 }
 
 /**
@@ -218,4 +240,127 @@ function decodeHtmlEntities(text) {
   };
   
   return text.replace(/&[^;]+;/g, (match) => entities[match] || match);
+}
+
+/**
+ * 获取详情页完整内容和评论区链接
+ */
+async function fetchDetailContent(url) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      },
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const html = await response.text();
+    
+    // 提取文章内容
+    const contentMatch = /<div[^>]*class="article-content"[^>]*>([\s\S]*?)<\/div>/i.exec(html);
+    let content = '';
+    if (contentMatch) {
+      // 移除HTML标签，保留文本
+      content = contentMatch[1]
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, '\n')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+    }
+    
+    // 提取原文链接
+    const sourceLinkMatch = /<a[^>]*>原文地址<\/a>/i.exec(html);
+    if (sourceLinkMatch) {
+      const hrefMatch = /href="([^"]+)"/i.exec(sourceLinkMatch[0]);
+      if (hrefMatch) {
+        content += `\n\n🔗 原文链接: ${hrefMatch[1]}`;
+      }
+    }
+    
+    // 提取评论区链接
+    const commentLinks = extractCommentLinks(html);
+    if (commentLinks.length > 0) {
+      content += '\n\n💬 评论区补充:\n' + commentLinks.join('\n');
+    }
+    
+    return {
+      content: content || '无详细内容',
+      links: commentLinks,
+    };
+  } catch (error) {
+    console.error('获取详情页失败:', error);
+    return null;
+  }
+}
+
+/**
+ * 从评论区提取商品链接和获取方法
+ */
+function extractCommentLinks(html) {
+  const links = [];
+  
+  // 查找评论列表
+  const commentListMatch = /<div[^>]*class="comment-list"[^>]*>([\s\S]*?)<\/div>\s*<div[^>]*class="pagination/i.exec(html);
+  if (!commentListMatch) {
+    return links;
+  }
+  
+  const commentListHtml = commentListMatch[1];
+  
+  // 提取所有评论
+  const commentPattern = /<div[^>]*class="ul"[^>]*>([\s\S]*?)<\/div>\s*(?=<div[^>]*class="ul"|$)/gi;
+  let match;
+  let index = 1;
+  
+  while ((match = commentPattern.exec(commentListHtml)) !== null && index <= 10) {
+    const commentHtml = match[1];
+    
+    // 提取评论内容
+    const contentMatch = /<div[^>]*class="c-neirong"[^>]*>([\s\S]*?)<\/div>/i.exec(commentHtml);
+    if (!contentMatch) continue;
+    
+    const commentContent = contentMatch[1];
+    
+    // 提取<a>标签链接
+    const linkPattern = /<a[^>]*href="([^"]+)"[^>]*>([^<]*)<\/a>/gi;
+    let linkMatch;
+    while ((linkMatch = linkPattern.exec(commentContent)) !== null) {
+      const href = linkMatch[1];
+      const text = linkMatch[2].trim();
+      if (href && !href.startsWith('#')) {
+        links.push(`[${index}] ${text || '链接'}: ${href}`);
+      }
+    }
+    
+    // 提取纯文本URL
+    const commentText = commentContent.replace(/<[^>]+>/g, ' ');
+    const urlPattern = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/g;
+    let urlMatch;
+    while ((urlMatch = urlPattern.exec(commentText)) !== null) {
+      const url = urlMatch[1];
+      // 避免重复
+      if (!links.some(link => link.includes(url))) {
+        links.push(`[${index}] ${url}`);
+      }
+    }
+    
+    // 提取包含获取方法的关键信息
+    if (links.length === 0) {
+      const keywords = ['口令', '密令', '链接', '进入', '搜索', '打开', '复制', '淘宝', '京东', '拼多多'];
+      if (keywords.some(kw => commentText.includes(kw))) {
+        const shortText = commentText.substring(0, 200).trim();
+        if (shortText.length > 10) {
+          links.push(`[${index}] ${shortText}`);
+        }
+      }
+    }
+    
+    index++;
+  }
+  
+  return links;
 }
