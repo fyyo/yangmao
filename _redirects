@@ -1,0 +1,4 @@
+/feed.xml /output/feed.xml 200
+/feed.atom /output/feed.atom 200
+/feed.json /output/feed.json 200
+/* /index.html 200

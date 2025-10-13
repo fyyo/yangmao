@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/feed.xml",
+      "dest": "/output/feed.xml"
+    },
+    {
+      "src": "/feed.atom",
+      "dest": "/output/feed.atom"
+    },
+    {
+      "src": "/feed.json",
+      "dest": "/output/feed.json"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "github": {
+    "silent": true
+  }
+}

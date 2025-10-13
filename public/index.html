@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高质量羊毛线报</title>
+    <meta name="description" content="精选高质量羊毛线报，实时更新">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #3b82f6;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 
+                         'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .header-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .header-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .header-links a:hover {
+            background: var(--bg-color);
+            color: var(--primary-color);
+        }
+
+        .main {
+            padding: 2rem 0;
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .filters {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .search-box {
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            background: var(--card-bg);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .posts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .post-card {
+            background: var(--card-bg);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+            border: 1px solid var(--border-color);
+        }
+
+        .post-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .post-category {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #eff6ff;
+            color: var(--primary-color);
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .post-score {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .post-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .post-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .post-title a:hover {
+            color: var(--primary-color);
+        }
+
+        .post-content {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .post-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .post-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .post-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .post-link:hover {
+            text-decoration: underline;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .empty {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .posts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                flex-direction: column;
+            }
+
+            .header-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">🎁 羊毛线报</div>
+                <div class="header-links">
+                    <a href="/feed.xml" target="_blank">📡 RSS订阅</a>
+                    <a href="/feed.json" target="_blank">📊 JSON API</a>
+                    <a href="https://github.com" target="_blank">💻 GitHub</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">总线报数</div>
+                    <div class="stat-value" id="totalCount">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">最新更新</div>
+                    <div class="stat-value" style="font-size: 1.2rem;" id="updateTime">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">平均质量分</div>
+                    <div class="stat-value" id="avgScore">-</div>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    class="search-input" 
+                    placeholder="🔍 搜索线报标题或内容..."
+                    id="searchInput"
+                >
+            </div>
+
+            <div class="filters">
+                <div class="filter-group" id="filterGroup">
+                    <button class="filter-btn active" data-category="all">全部</button>
+                </div>
+            </div>
+
+            <div id="postsContainer">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>加载中...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let allPosts = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        // 加载数据
+        async function loadData() {
+            try {
+                const response = await fetch('/feed.json');
+                const data = await response.json();
+                allPosts = data.items || [];
+                
+                // 更新统计信息
+                updateStats(data);
+                
+                // 生成分类过滤器
+                generateFilters();
+                
+                // 显示线报
+                renderPosts();
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                document.getElementById('postsContainer').innerHTML = 
+                    '<div class="empty">❌ 加载失败，请稍后重试</div>';
+            }
+        }
+
+        // 更新统计信息
+        function updateStats(data) {
+            document.getElementById('totalCount').textContent = allPosts.length;
+            
+            const updateTime = new Date(data.updated);
+            document.getElementById('updateTime').textContent = 
+                updateTime.toLocaleString('zh-CN', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            
+            const avgScore = allPosts.reduce((sum, post) => sum + (post.quality_score || 0), 0) / allPosts.length;
+            document.getElementById('avgScore').textContent = avgScore.toFixed(1);
+        }
+
+        // 生成分类过滤器
+        function generateFilters() {
+            const categories = new Set();
+            allPosts.forEach(post => {
+                if (post.category) {
+                    categories.add(post.category);
+                }
+            });
+
+            const filterGroup = document.getElementById('filterGroup');
+            categories.forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.dataset.category = category;
+                btn.textContent = category;
+                btn.onclick = () => filterByCategory(category);
+                filterGroup.appendChild(btn);
+            });
+        }
+
+        // 分类过滤
+        function filterByCategory(category) {
+            currentFilter = category;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.category === category) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            renderPosts();
+        }
+
+        // 搜索过滤
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase();
+            renderPosts();
+        });
+
+        // 渲染线报列表
+        function renderPosts() {
+            let posts = allPosts;
+            
+            // 应用分类过滤
+            if (currentFilter !== 'all') {
+                posts = posts.filter(post => post.category === currentFilter);
+            }
+            
+            // 应用搜索过滤
+            if (searchQuery) {
+                posts = posts.filter(post => 
+                    post.title.toLowerCase().includes(searchQuery) ||
+                    (post.content && post.content.toLowerCase().includes(searchQuery))
+                );
+            }
+            
+            const container = document.getElementById('postsContainer');
+            
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="empty">😔 没有找到相关线报</div>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="posts-grid">' + 
+                posts.map(post => createPostCard(post)).join('') + 
+                '</div>';
+        }
+
+        // 创建线报卡片
+        function createPostCard(post) {
+            const score = post.quality_score || 0;
+            const scoreEmoji = score >= 90 ? '🌟' : score >= 80 ? '⭐' : score >= 70 ? '✨' : '💫';
+            
+            // 格式化内容
+            const content = post.content ? post.content.replace(/\n/g, '<br>') : post.summary || '';
+            const shortContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
+            
+            // 格式化时间
+            const time = post.publish_time ? new Date(post.publish_time).toLocaleString('zh-CN', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '';
+            
+            return `
+                <div class="post-card">
+                    <div class="post-header">
+                        <span class="post-category">${post.category || '其他'}</span>
+                        <span class="post-score">${scoreEmoji} ${score}</span>
+                    </div>
+                    <h3 class="post-title">
+                        <a href="${post.url}" target="_blank">${post.title}</a>
+                    </h3>
+                    <div class="post-content">${shortContent}</div>
+                    <div class="post-footer">
+                        <span class="post-time">⏰ ${time}</span>
+                        <a href="${post.url}" target="_blank" class="post-link">查看详情 →</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 页面加载时加载数据
+        loadData();
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+name = "yangmao-rss"
+type = "webpack"
+account_id = ""
+workers_dev = true
+route = ""
+zone_id = ""
+
+[site]
+bucket = "./public"
+entry-point = "workers"
+
+[build]
+command = "python main.py"
+[build.upload]
+format = "service-worker"
+
+# KV命名空间（可选，用于缓存）
+# [[kv_namespaces]]
+# binding = "FEED_CACHE"
+# id = "your-kv-namespace-id"
+
+[env.production]
+name = "yangmao-rss-prod"
+route = "yangmao.yourdomain.com/*"
