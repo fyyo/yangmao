@@ -305,8 +305,8 @@
             <div class="header-content">
                 <div class="logo">🎁 羊毛线报</div>
                 <div class="header-links">
-                    <a href="/feed.xml" target="_blank">📡 RSS订阅</a>
-                    <a href="/feed.json" target="_blank">📊 JSON API</a>
+                    <a href="/api/feed" target="_blank">📡 RSS订阅</a>
+                    <a href="/api/posts" target="_blank">📊 JSON API</a>
                     <a href="https://github.com" target="_blank">💻 GitHub</a>
                 </div>
             </div>
@@ -362,7 +362,14 @@
         // 加载数据
         async function loadData() {
             try {
-                const response = await fetch('/feed.json');
+                // 优先尝试从动态API加载
+                let response = await fetch('/api/posts');
+                
+                // 如果API不可用，回退到静态文件
+                if (!response.ok) {
+                    response = await fetch('/feed.json');
+                }
+                
                 const data = await response.json();
                 allPosts = data.items || [];
                 

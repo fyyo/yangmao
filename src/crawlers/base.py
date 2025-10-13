@@ -68,7 +68,7 @@ class BaseCrawler(ABC):
         Returns:
             BeautifulSoup对象
         """
-        return BeautifulSoup(html, 'lxml')
+        return BeautifulSoup(html, 'html.parser')
     
     @abstractmethod
     async def crawl(self) -> List[Dict]:
