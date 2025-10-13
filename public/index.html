@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -179,7 +178,6 @@
 
         .post-card:hover {
             box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
         }
 
         .post-header {
@@ -212,26 +210,49 @@
             font-weight: 600;
             margin-bottom: 0.75rem;
             line-height: 1.4;
-        }
-
-        .post-title a {
             color: var(--text-primary);
-            text-decoration: none;
         }
 
-        .post-title a:hover {
-            color: var(--primary-color);
+        .post-content-full {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.8;
+            margin: 1rem 0 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-color);
+            border-radius: 0.5rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
-        .post-content {
-            color: var(--text-secondary);
+        .post-links {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fef3c7;
+            border-radius: 0.5rem;
+            border-left: 4px solid #f59e0b;
+        }
+
+        .post-links-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .post-links-content {
+            color: #78350f;
             font-size: 0.875rem;
-            line-height: 1.6;
-            margin-bottom: 1rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 4;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .post-links-content a {
+            color: #2563eb;
+            text-decoration: underline;
         }
 
         .post-footer {
@@ -247,16 +268,6 @@
             color: var(--text-secondary);
         }
 
-        .post-link {
-            color: var(--primary-color);
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .post-link:hover {
-            text-decoration: underline;
-        }
 
         .loading {
             text-align: center;
@@ -307,7 +318,7 @@
                 <div class="header-links">
                     <a href="/api/feed" target="_blank">📡 RSS订阅</a>
                     <a href="/api/posts" target="_blank">📊 JSON API</a>
-                    <a href="https://github.com" target="_blank">💻 GitHub</a>
+                    <a href="https://github.com/fyyo/yangmao" target="_blank">💻 GitHub</a>
                 </div>
             </div>
         </div>
@@ -359,27 +370,19 @@
         let currentFilter = 'all';
         let searchQuery = '';
 
-        // 加载数据
         async function loadData() {
             try {
-                // 优先尝试从动态API加载
-                let response = await fetch('/api/posts');
+                const response = await fetch('/api/posts');
                 
-                // 如果API不可用，回退到静态文件
                 if (!response.ok) {
-                    response = await fetch('/feed.json');
+                    throw new Error('API请求失败');
                 }
                 
                 const data = await response.json();
                 allPosts = data.items || [];
                 
-                // 更新统计信息
                 updateStats(data);
-                
-                // 生成分类过滤器
                 generateFilters();
-                
-                // 显示线报
                 renderPosts();
             } catch (error) {
                 console.error('加载数据失败:', error);
@@ -388,14 +391,14 @@
             }
         }
 
-        // 更新统计信息
         function updateStats(data) {
             document.getElementById('totalCount').textContent = allPosts.length;
             
             const updateTime = new Date(data.updated);
-            document.getElementById('updateTime').textContent = 
-                updateTime.toLocaleString('zh-CN', { 
-                    month: 'short', 
+            document.getElementById('updateTime').textContent =
+                updateTime.toLocaleString('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
@@ -405,7 +408,6 @@
             document.getElementById('avgScore').textContent = avgScore.toFixed(1);
         }
 
-        // 生成分类过滤器
         function generateFilters() {
             const categories = new Set();
             allPosts.forEach(post => {
@@ -425,11 +427,9 @@
             });
         }
 
-        // 分类过滤
         function filterByCategory(category) {
             currentFilter = category;
             
-            // 更新按钮状态
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active');
                 if (btn.dataset.category === category) {
@@ -440,22 +440,18 @@
             renderPosts();
         }
 
-        // 搜索过滤
         document.getElementById('searchInput').addEventListener('input', (e) => {
             searchQuery = e.target.value.toLowerCase();
             renderPosts();
         });
 
-        // 渲染线报列表
         function renderPosts() {
             let posts = allPosts;
             
-            // 应用分类过滤
             if (currentFilter !== 'all') {
                 posts = posts.filter(post => post.category === currentFilter);
             }
             
-            // 应用搜索过滤
             if (searchQuery) {
                 posts = posts.filter(post => 
                     post.title.toLowerCase().includes(searchQuery) ||
@@ -470,27 +466,34 @@
                 return;
             }
             
-            container.innerHTML = '<div class="posts-grid">' + 
-                posts.map(post => createPostCard(post)).join('') + 
+            container.innerHTML = '<div class="posts-grid">' +
+                posts.map(post => createPostCard(post)).join('') +
                 '</div>';
         }
 
-        // 创建线报卡片
         function createPostCard(post) {
             const score = post.quality_score || 0;
             const scoreEmoji = score >= 90 ? '🌟' : score >= 80 ? '⭐' : score >= 70 ? '✨' : '💫';
             
-            // 格式化内容
-            const content = post.content ? post.content.replace(/\n/g, '<br>') : post.summary || '';
-            const shortContent = content.length > 200 ? content.substring(0, 200) + '...' : content;
+            const fullContent = post.content || '暂无详细内容';
             
-            // 格式化时间
-            const time = post.publish_time ? new Date(post.publish_time).toLocaleString('zh-CN', {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : '';
+            const links = post.links && post.links.length > 0 ?
+                `<div class="post-links">
+                    <div class="post-links-title">💬 评论区补充信息</div>
+                    <div class="post-links-content">${post.links.join('<br>')}</div>
+                </div>` : '';
+            
+            const time = post.publish_time ?
+                new Date(post.publish_time).toLocaleString('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                }) : '';
             
             return `
                 <div class="post-card">
@@ -498,19 +501,16 @@
                         <span class="post-category">${post.category || '其他'}</span>
                         <span class="post-score">${scoreEmoji} ${score}</span>
                     </div>
-                    <h3 class="post-title">
-                        <a href="${post.url}" target="_blank">${post.title}</a>
-                    </h3>
-                    <div class="post-content">${shortContent}</div>
+                    <h3 class="post-title">${post.title}</h3>
+                    <div class="post-content-full">${fullContent}</div>
+                    ${links}
                     <div class="post-footer">
                         <span class="post-time">⏰ ${time}</span>
-                        <a href="${post.url}" target="_blank" class="post-link">查看详情 →</a>
                     </div>
                 </div>
             `;
         }
 
-        // 页面加载时加载数据
         loadData();
     </script>
 </body>
