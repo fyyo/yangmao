@@ -218,17 +218,28 @@ function parseTime(timeStr) {
     const hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
     
-    // 获取当前北京时间
+    // 获取当前UTC时间
     const now = new Date();
-    const chinaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
     
-    // 创建北京时间的日期对象
-    const pubDate = new Date(chinaTime);
-    pubDate.setHours(hour, minute, 0, 0);
+    // 转换为北京时间（UTC+8）
+    const chinaOffset = 8 * 60; // 8小时的分钟数
+    const utcTime = now.getTime();
+    const chinaTime = new Date(utcTime + chinaOffset * 60 * 1000);
+    
+    // 使用北京时间的年月日，设置时分秒
+    const pubDate = new Date(Date.UTC(
+      chinaTime.getUTCFullYear(),
+      chinaTime.getUTCMonth(),
+      chinaTime.getUTCDate(),
+      hour - 8, // 减去8小时转回UTC
+      minute,
+      0,
+      0
+    ));
     
     // 如果时间比现在晚，说明是昨天的
-    if (pubDate > chinaTime) {
-      pubDate.setDate(pubDate.getDate() - 1);
+    if (pubDate > now) {
+      pubDate.setUTCDate(pubDate.getUTCDate() - 1);
     }
     
     return pubDate.toISOString();
