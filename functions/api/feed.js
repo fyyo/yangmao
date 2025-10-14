@@ -243,16 +243,35 @@ async function fetchDetailContent(url) {
     
     const html = await response.text();
     
-    // 提取文章内容
+    // 提取文章内容和图片
     const contentMatch = /<div[^>]*class="article-content"[^>]*>([\s\S]*?)<\/div>/i.exec(html);
     let content = '';
+    const images = [];
+    
     if (contentMatch) {
-      content = contentMatch[1]
+      const articleHtml = contentMatch[1];
+      
+      // 先提取所有图片
+      const imgPattern = /<img[^>]*src=["']([^"']+)["'][^>]*>/gi;
+      let imgMatch;
+      while ((imgMatch = imgPattern.exec(articleHtml)) !== null) {
+        images.push(imgMatch[1]);
+      }
+      
+      // 移除脚本和样式，但保留其他内容
+      content = articleHtml
         .replace(/<script[\s\S]*?<\/script>/gi, '')
         .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, '\n')
-        .replace(/\n\s*\n/g, '\n')
+        .replace(/<br[^>]*>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
         .trim();
+    }
+    
+    // 添加图片信息
+    if (images.length > 0) {
+      content += '\n\n📷 图片:\n' + images.map((img, i) => `[图${i + 1}] ${img}`).join('\n');
     }
     
     // 提取原文链接

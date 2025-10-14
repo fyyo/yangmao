@@ -226,6 +226,31 @@
             word-wrap: break-word;
         }
 
+        .post-images {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .image-item {
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .image-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .image-item img:hover {
+            transform: scale(1.05);
+        }
+
         .post-links {
             margin-top: 1rem;
             padding: 1rem;
@@ -509,6 +534,15 @@
                     </div>
                     <h3 class="post-title">${post.title}</h3>
                     <div class="post-content-full">${fullContent}</div>
+                    ${post.images && post.images.length > 0 ? `
+                        <div class="post-images">
+                            ${post.images.map((img, i) => `
+                                <div class="image-item">
+                                    <img src="${img}" alt="图片${i + 1}" loading="lazy" onerror="this.parentElement.style.display='none'">
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                     ${links}
                     <div class="post-footer">
                         <span class="post-time">⏰ ${time}</span>

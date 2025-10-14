@@ -149,6 +149,7 @@ async function parseHtml(html) {
         if (detail) {
           post.content = detail.content;
           post.links = detail.links;
+          post.images = detail.images || [];
         }
         return post;
       } catch (error) {
@@ -265,16 +266,29 @@ async function fetchDetailContent(url) {
     
     const html = await response.text();
     
-    // 提取文章内容
+    // 提取文章内容和图片
     const contentMatch = /<div[^>]*class="article-content"[^>]*>([\s\S]*?)<\/div>/i.exec(html);
     let content = '';
+    const images = [];
+    
     if (contentMatch) {
-      // 移除HTML标签，保留文本
-      content = contentMatch[1]
+      const articleHtml = contentMatch[1];
+      
+      // 先提取所有图片
+      const imgPattern = /<img[^>]*src=["']([^"']+)["'][^>]*>/gi;
+      let imgMatch;
+      while ((imgMatch = imgPattern.exec(articleHtml)) !== null) {
+        images.push(imgMatch[1]);
+      }
+      
+      // 移除脚本和样式，但保留其他内容
+      content = articleHtml
         .replace(/<script[\s\S]*?<\/script>/gi, '')
         .replace(/<style[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, '\n')
-        .replace(/\n\s*\n/g, '\n')
+        .replace(/<br[^>]*>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
         .trim();
     }
     
@@ -296,6 +310,7 @@ async function fetchDetailContent(url) {
     return {
       content: content || '无详细内容',
       links: commentLinks,
+      images: images,
     };
   } catch (error) {
     console.error('获取详情页失败:', error);
