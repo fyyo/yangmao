@@ -186,7 +186,6 @@ function calculateQualityScore(title, content, category, comments, timeStr) {
   }
   
   // 负面扣分
-  if (text.includes('微博') || category.includes('微博')) score -= 50; // 大幅降低微博内容
   if (text.includes('砍价')) score -= 30;
   if (text.includes('拉人') || text.includes('邀请好友')) score -= 30;
   if (text.includes('助力')) score -= 25;
