@@ -1,7 +1,9 @@
 /**
- * Vercel Serverless Function - 动态生成RSS Feed
+ * Vercel Serverless Function - 动态生成RSS Feed（增量更新版）
  * 路径: /api/feed
  */
+
+import { getPublishedLinks, savePublishedLinks, resetPublishedLinks } from '../src/storage/persistence.js';
 
 export default async function handler(req, res) {
   try {
@@ -15,11 +17,53 @@ export default async function handler(req, res) {
       return res.status(200).end();
     }
 
+    // 解析查询参数
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const showAll = url.searchParams.get('all') === 'true';
+    const reset = url.searchParams.get('reset') === 'true';
+
+    // 重置已发布记录
+    if (reset) {
+      await resetPublishedLinks();
+      return res.status(200).json({ message: '已重置发布记录' });
+    }
+
+    // 读取已发布的链接
+    const storage = await getPublishedLinks();
+    let publishedLinks = storage.links;
+    const lastUpdate = storage.lastUpdate;
+
     // 爬取线报酷数据
-    const posts = await fetchIxbkPosts();
+    const allPosts = await fetchIxbkPosts();
     
-    // 生成RSS XML
-    const rssXml = generateRSS(posts);
+    // 过滤出新文章（未发布过的）
+    let posts = allPosts;
+    let newCount = 0;
+    
+    if (!showAll) {
+      posts = allPosts.filter(post => !publishedLinks.has(post.link));
+      newCount = posts.length;
+      
+      // 将新文章添加到已发布集合
+      posts.forEach(post => publishedLinks.add(post.link));
+      
+      // 限制存储大小（最多保留800条）
+      if (publishedLinks.size > 800) {
+        const linksArray = Array.from(publishedLinks);
+        publishedLinks = new Set(linksArray.slice(-800));
+      }
+      
+      // 保存到持久化存储
+      await savePublishedLinks(publishedLinks, Date.now());
+    }
+    
+    // 生成RSS XML（带统计信息）
+    const rssXml = generateRSS(posts, {
+      showAll,
+      newCount,
+      totalTracked: publishedLinks.size,
+      lastUpdate: new Date(lastUpdate).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+    });
     
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=1800'); // 缓存30分钟
@@ -234,15 +278,29 @@ function decodeHtmlEntities(text) {
 /**
  * 生成RSS 2.0格式的XML
  */
-function generateRSS(posts) {
+function generateRSS(posts, stats = {}) {
   const now = new Date().toUTCString();
+  
+  // 构建描述信息
+  let description = '自动抓取线报酷最新羊毛线报，实时更新';
+  if (stats.showAll) {
+    description += ` | 显示全部 ${posts.length} 条`;
+  } else if (stats.newCount !== undefined) {
+    description += ` | 本次更新: ${stats.newCount} 条新内容`;
+    if (stats.totalTracked) {
+      description += ` | 已追踪: ${stats.totalTracked} 条`;
+    }
+    if (stats.lastUpdate) {
+      description += ` | 上次更新: ${stats.lastUpdate}`;
+    }
+  }
   
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>羊毛线报 - 线报酷精选</title>
+    <title>羊毛线报 - 线报酷精选${stats.showAll ? ' (全部)' : ' (增量)'}</title>
     <link>https://new.ixbk.net/</link>
-    <description>自动抓取线报酷最新羊毛线报，实时更新</description>
+    <description>${description}</description>
     <language>zh-CN</language>
     <lastBuildDate>${now}</lastBuildDate>
     <atom:link href="/api/feed" rel="self" type="application/rss+xml"/>
