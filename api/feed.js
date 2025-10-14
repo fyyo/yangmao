@@ -131,15 +131,19 @@ function parseTime(timeStr) {
   // 匹配 HH:MM 格式
   const match = timeStr.match(/(\d{1,2}):(\d{2})/);
   if (match) {
-    const now = new Date();
     const hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
     
-    const pubDate = new Date(now);
+    // 获取当前北京时间
+    const now = new Date();
+    const chinaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+    
+    // 创建北京时间的日期对象
+    const pubDate = new Date(chinaTime);
     pubDate.setHours(hour, minute, 0, 0);
     
     // 如果时间比现在晚，说明是昨天的
-    if (pubDate > now) {
+    if (pubDate > chinaTime) {
       pubDate.setDate(pubDate.getDate() - 1);
     }
     
