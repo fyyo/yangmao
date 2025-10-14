@@ -162,8 +162,8 @@
         }
 
         .posts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 1.5rem;
         }
 
@@ -174,6 +174,7 @@
             box-shadow: var(--shadow);
             transition: all 0.3s;
             border: 1px solid var(--border-color);
+            width: 100%;
         }
 
         .post-card:hover {
@@ -483,17 +484,22 @@
                     <div class="post-links-content">${post.links.join('<br>')}</div>
                 </div>` : '';
             
-            const time = post.publish_time ?
-                new Date(post.publish_time).toLocaleString('zh-CN', {
+            // 解析时间并转换为上海时区
+            let time = '';
+            if (post.publish_time) {
+                const date = new Date(post.publish_time);
+                // 转换为上海时区的时间字符串
+                const options = {
                     timeZone: 'Asia/Shanghai',
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',
                     hour: '2-digit',
                     minute: '2-digit',
-                    second: '2-digit',
                     hour12: false
-                }) : '';
+                };
+                time = date.toLocaleString('zh-CN', options).replace(/\//g, '-');
+            }
             
             return `
                 <div class="post-card">
