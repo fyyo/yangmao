@@ -91,17 +91,24 @@ async function parseHtml(html) {
     const timeStr = timeMatch ? timeMatch[1].trim() : '';
     
     if (title && link) {
+      const qualityScore = calculateQualityScore(title, content, category, 0, timeStr);
+      
       posts.push({
         title: decodeHtmlEntities(title),
         link: link,
         category: category,
         content: decodeHtmlEntities(content || title),
         pubDate: parseTime(timeStr),
+        quality_score: qualityScore,
       });
     }
   }
   
-  const topPosts = posts.slice(0, 20); // 先取20条
+  // 按质量分数过滤并按时间排序
+  const topPosts = posts
+    .filter(post => post.quality_score >= 60)
+    .sort((a, b) => b.pubDate - a.pubDate)
+    .slice(0, 20); // 先取20条
   
   // 并发获取详情页内容
   const postsWithDetail = await Promise.all(
@@ -162,6 +169,51 @@ function parseTime(timeStr) {
   }
   
   return new Date();
+}
+
+/**
+ * 计算质量分数
+ */
+function calculateQualityScore(title, content, category, comments, timeStr) {
+  let score = 50; // 基础分
+  
+  const text = (title + ' ' + content).toLowerCase();
+  
+  // 正面加分
+  if (text.includes('实物') || text.includes('商品')) score += 20;
+  if (text.includes('话费') || text.includes('充值')) score += 15;
+  if (text.includes('红包') || text.includes('现金')) score += 12;
+  if (text.includes('京东') || category.includes('京东')) score += 10;
+  if (text.includes('天猫') || text.includes('淘宝')) score += 10;
+  if (text.includes('拼多多')) score += 10;
+  
+  // 评论加成
+  score += Math.min(comments * 0.5, 10);
+  
+  // 时间加成（2小时内）
+  const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+  if (match) {
+    const now = new Date();
+    const hour = parseInt(match[1]);
+    const currentHour = now.getHours();
+    const hourDiff = Math.abs(currentHour - hour);
+    if (hourDiff <= 2) score += 10;
+  }
+  
+  // 负面扣分
+  if (text.includes('微博') || category.includes('微博')) score -= 50; // 大幅降低微博内容
+  if (text.includes('砍价')) score -= 30;
+  if (text.includes('拉人') || text.includes('邀请好友')) score -= 30;
+  if (text.includes('助力')) score -= 25;
+  if (text.includes('邀请')) score -= 20;
+  if (text.includes('组队')) score -= 15;
+  
+  // 分类权重
+  if (category.includes('京东')) score *= 1.2;
+  if (category.includes('话费')) score *= 1.3;
+  if (category.includes('淘宝')) score *= 1.1;
+  
+  return Math.round(Math.max(0, Math.min(100, score)));
 }
 
 /**

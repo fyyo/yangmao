@@ -135,10 +135,10 @@ async function parseHtml(html) {
     }
   }
   
-  // 按质量分数排序并过滤低质量内容
+  // 按时间排序并过滤低质量内容
   const filteredPosts = posts
     .filter(post => post.quality_score >= 60)
-    .sort((a, b) => b.quality_score - a.quality_score)
+    .sort((a, b) => new Date(b.publish_time) - new Date(a.publish_time))
     .slice(0, 20); // 先取20条，因为要爬详情页
   
   // 并发获取详情页内容
@@ -192,6 +192,7 @@ function calculateQualityScore(title, content, category, comments, timeStr) {
   }
   
   // 负面扣分
+  if (text.includes('微博') || category.includes('微博')) score -= 50; // 大幅降低微博内容
   if (text.includes('砍价')) score -= 30;
   if (text.includes('拉人') || text.includes('邀请好友')) score -= 30;
   if (text.includes('助力')) score -= 25;
