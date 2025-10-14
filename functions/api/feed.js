@@ -69,11 +69,14 @@ export async function onRequest(context) {
       lastUpdate: new Date(lastUpdate).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
     });
     
+    // 动态缓存时间：60-600秒（1-10分钟）
+    const randomMaxAge = Math.floor(Math.random() * 540) + 60;
+    
     return new Response(rssXml, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'application/xml; charset=utf-8',
-        'Cache-Control': 'public, max-age=1800', // 缓存30分钟
+        'Cache-Control': `public, max-age=${randomMaxAge}`,
       },
     });
   } catch (error) {

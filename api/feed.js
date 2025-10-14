@@ -65,8 +65,11 @@ export default async function handler(req, res) {
       lastUpdate: new Date(lastUpdate).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
     });
     
+    // 动态缓存时间：60-600秒（1-10分钟）
+    const randomMaxAge = Math.floor(Math.random() * 540) + 60;
+    
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
-    res.setHeader('Cache-Control', 'public, max-age=1800'); // 缓存30分钟
+    res.setHeader('Cache-Control', `public, max-age=${randomMaxAge}`);
     res.status(200).send(rssXml);
   } catch (error) {
     res.status(500).json({ error: error.message });

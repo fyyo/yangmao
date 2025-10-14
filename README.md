@@ -37,11 +37,25 @@ RSS订阅: https://your-project.vercel.app/api/feed
 JSON API: https://your-project.vercel.app/api/posts
 ```
 
+**环境变量配置**：
+
+无需手动配置，Vercel 会自动注入以下环境变量：
+- `KV_REST_API_URL` - KV存储API地址（自动设置）
+- `KV_REST_API_TOKEN` - KV存储访问令牌（自动设置）
+
 **增量更新配置（可选）**：
 ```bash
-# 创建 Vercel KV 存储以支持增量更新
+# 1. 安装 Vercel CLI
+npm i -g vercel
+
+# 2. 创建 Vercel KV 存储以支持增量更新
 vercel kv create published-links
+
+# 3. 关联到项目（会自动设置环境变量）
+vercel link
 ```
+
+创建 KV 存储后，Vercel 会自动在项目中配置环境变量，无需手动设置。
 
 ### 方式二：Cloudflare Pages部署
 
@@ -59,11 +73,33 @@ RSS订阅: https://yangmao.pages.dev/api/feed
 JSON API: https://yangmao.pages.dev/api/posts
 ```
 
-**增量更新配置（可选）**：
-1. 在 Cloudflare Dashboard 创建 KV 命名空间 `PUBLISHED_LINKS`
-2. 在 Pages 项目设置中绑定 KV 命名空间
+**环境变量配置**：
 
-详细教程: [CLOUDFLARE_PAGES_DEPLOY.md](CLOUDFLARE_PAGES_DEPLOY.md)
+无需手动配置环境变量，通过 KV 绑定即可。
+
+**增量更新配置（可选）**：
+
+1. **创建 KV 命名空间**：
+   - 进入 [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - 导航到 **Workers & Pages** > **KV**
+   - 点击 **Create namespace**
+   - 命名空间名称：`PUBLISHED_LINKS`（可自定义）
+   - 点击 **Add**
+
+2. **绑定到 Pages 项目**：
+   - 进入 **Workers & Pages** > 选择你的项目
+   - 点击 **Settings** > **Functions**
+   - 找到 **KV namespace bindings** 部分
+   - 点击 **Add binding**
+   - **Variable name**: `PUBLISHED_LINKS` （必须是这个名称）
+   - **KV namespace**: 选择刚创建的命名空间
+   - 点击 **Save**
+
+3. **重新部署**：
+   - 绑定后需要重新部署项目才能生效
+   - 可以通过推送新提交或在 Dashboard 中手动触发部署
+
+> ⚠️ **重要**：Variable name 必须设置为 `PUBLISHED_LINKS`，这是代码中硬编码的变量名。
 
 ## 🔄 增量更新功能
 
@@ -110,7 +146,11 @@ vercel kv create published-links
 npm install @vercel/kv
 ```
 
-Vercel 会自动设置环境变量 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN`。
+Vercel 会自动设置环境变量：
+- `KV_REST_API_URL` - KV存储REST API地址
+- `KV_REST_API_TOKEN` - KV存储访问令牌
+
+这些变量在创建 KV 存储后会自动注入到项目中，无需手动配置。
 
 #### Cloudflare KV（Cloudflare Pages 部署）
 
@@ -120,9 +160,13 @@ Vercel 会自动设置环境变量 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN`。
    - 命名为 `PUBLISHED_LINKS`
 
 2. 绑定到 Pages 项目：
-   - 进入 **Pages** > 你的项目 > **Settings** > **Functions**
-   - **KV namespace bindings** 添加绑定
-   - Variable name: `PUBLISHED_LINKS`
+   - 进入 **Workers & Pages** > 你的项目 > **Settings** > **Functions**
+   - 在 **KV namespace bindings** 部分点击 **Add binding**
+   - **Variable name**: `PUBLISHED_LINKS` （⚠️ 必须是这个名称）
+   - **KV namespace**: 选择你创建的命名空间
+   - 点击 **Save** 并重新部署项目
+
+> **注意**：Variable name 必须精确匹配 `PUBLISHED_LINKS`，因为代码通过 `context.env.PUBLISHED_LINKS` 访问。
 
 #### 内存存储（Fallback）
 
@@ -147,7 +191,7 @@ Vercel 会自动设置环境变量 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN`。
 ```
 用户请求 → CDN边缘节点 → Serverless函数 → 实时爬取线报酷 → 返回数据
                                        ↓
-                                30分钟CDN缓存
+                            动态CDN缓存（1-10分钟随机）
 ```
 
 **关键特点**：
@@ -230,17 +274,17 @@ GET /api/feed?all=true      # 查看全部
 GET /api/feed?reset=true    # 重置记录
 ```
 
-**响应格式**: RSS 2.0 XML  
-**缓存时间**: 30分钟  
-**返回内容**: 最多50条高质量线报
+**响应格式**: RSS 2.0 XML
+**缓存策略**: 动态随机缓存 1-10分钟（避免缓存雪崩）
+**返回内容**: 最多20条高质量线报（含详情页内容）
 
 ### JSON API接口
 ```
 GET /api/posts
 ```
 
-**响应格式**: JSON  
-**缓存时间**: 30分钟
+**响应格式**: JSON
+**缓存策略**: 动态随机缓存 1-10分钟（避免缓存雪崩）
 
 **响应示例**:
 ```json
@@ -270,7 +314,7 @@ GET /api/posts
 **推荐订阅配置**：
 ```
 订阅地址: https://your-domain.com/api/feed
-更新频率: 30分钟或1小时
+更新频率: 15-30分钟（考虑到动态缓存1-10分钟）
 ```
 
 ## 💰 成本说明
@@ -317,9 +361,10 @@ python -m http.server 8000 -d public
    - 使用者需遵守相关法律法规
 
 2. **爬虫礼仪**
-   - 已设置合理的请求间隔（30分钟CDN缓存）
+   - 已设置合理的请求间隔（1-10分钟动态CDN缓存）
    - 不对目标网站造成压力
    - 遵守robots.txt规则
+   - 只爬取首页数据，避免过度请求
 
 3. **数据准确性**
    - 羊毛线报时效性强，请自行验证
