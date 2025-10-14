@@ -1,6 +1,6 @@
 /**
- * 持久化存储模块 - 支持多种存储后端
- * 支持: Vercel KV, Cloudflare KV, 内存存储（fallback）
+ * Vercel 专用持久化存储模块
+ * 使用 Vercel KV 或内存存储（fallback）
  */
 
 // 内存存储（fallback）
@@ -15,14 +15,9 @@ let memoryStorage = {
  */
 export async function getPublishedLinks() {
   try {
-    // 优先使用 Vercel KV
+    // 检查是否在 Vercel 环境
     if (typeof process !== 'undefined' && process.env.KV_REST_API_URL) {
       return await getFromVercelKV();
-    }
-    
-    // 其次使用 Cloudflare KV (在 Cloudflare Workers/Pages 环境)
-    if (typeof PUBLISHED_LINKS !== 'undefined') {
-      return await getFromCloudflareKV();
     }
     
     // 降级到内存存储
@@ -56,11 +51,6 @@ export async function savePublishedLinks(links, lastUpdate) {
       await saveToVercelKV(data);
     }
     
-    // 保存到 Cloudflare KV
-    if (typeof PUBLISHED_LINKS !== 'undefined') {
-      await saveToCloudflareKV(data);
-    }
-    
     // 同时保存到内存
     memoryStorage = {
       links: new Set(links),
@@ -82,52 +72,37 @@ export async function resetPublishedLinks() {
  * 从 Vercel KV 读取数据
  */
 async function getFromVercelKV() {
-  const { kv } = await import('@vercel/kv');
-  const data = await kv.get('published_links');
-  
-  if (data && data.links) {
+  try {
+    // 动态导入，避免在非 Vercel 环境构建失败
+    const { kv } = await import('@vercel/kv');
+    const data = await kv.get('published_links');
+    
+    if (data && data.links) {
+      return {
+        links: new Set(data.links),
+        lastUpdate: data.lastUpdate || Date.now()
+      };
+    }
+    
     return {
-      links: new Set(data.links),
-      lastUpdate: data.lastUpdate || Date.now()
+      links: new Set(),
+      lastUpdate: Date.now()
     };
+  } catch (error) {
+    console.warn('Vercel KV 读取失败，使用内存存储:', error.message);
+    throw error;
   }
-  
-  return {
-    links: new Set(),
-    lastUpdate: Date.now()
-  };
 }
 
 /**
  * 保存到 Vercel KV
  */
 async function saveToVercelKV(data) {
-  const { kv } = await import('@vercel/kv');
-  await kv.set('published_links', data);
-}
-
-/**
- * 从 Cloudflare KV 读取数据
- */
-async function getFromCloudflareKV() {
-  const data = await PUBLISHED_LINKS.get('published_links', { type: 'json' });
-  
-  if (data && data.links) {
-    return {
-      links: new Set(data.links),
-      lastUpdate: data.lastUpdate || Date.now()
-    };
+  try {
+    const { kv } = await import('@vercel/kv');
+    await kv.set('published_links', data);
+  } catch (error) {
+    console.warn('Vercel KV 保存失败:', error.message);
+    throw error;
   }
-  
-  return {
-    links: new Set(),
-    lastUpdate: Date.now()
-  };
-}
-
-/**
- * 保存到 Cloudflare KV
- */
-async function saveToCloudflareKV(data) {
-  await PUBLISHED_LINKS.put('published_links', JSON.stringify(data));
 }

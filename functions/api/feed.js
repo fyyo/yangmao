@@ -3,7 +3,7 @@
  * 路径: /api/feed
  */
 
-import { getPublishedLinks, savePublishedLinks, resetPublishedLinks } from '../../src/storage/persistence.js';
+import { getPublishedLinks, savePublishedLinks, resetPublishedLinks } from '../storage/cloudflare-persistence.js';
 
 export async function onRequest(context) {
   try {
@@ -26,14 +26,14 @@ export async function onRequest(context) {
 
     // 重置已发布记录
     if (reset) {
-      await resetPublishedLinks();
+      await resetPublishedLinks(context.env);
       return new Response(JSON.stringify({ message: '已重置发布记录' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // 读取已发布的链接
-    const storage = await getPublishedLinks();
+    const storage = await getPublishedLinks(context.env);
     let publishedLinks = storage.links;
     const lastUpdate = storage.lastUpdate;
 
@@ -58,7 +58,7 @@ export async function onRequest(context) {
       }
       
       // 保存到持久化存储
-      await savePublishedLinks(publishedLinks, Date.now());
+      await savePublishedLinks(publishedLinks, Date.now(), context.env);
     }
     
     // 生成RSS XML（带统计信息）

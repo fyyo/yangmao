@@ -1,20 +1,20 @@
 # 🐑 羊毛线报RSS源项目
 
-> 智能过滤、实时抓取的高质量羊毛线报RSS订阅服务
+> 智能过滤、实时抓取、增量更新的高质量羊毛线报RSS订阅服务
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com)
-[![Netlify](https://img.shields.io/badge/Deploy-Netlify-00C7B7?logo=netlify)](https://netlify.com)
 [![Cloudflare](https://img.shields.io/badge/Deploy-Cloudflare-F38020?logo=cloudflare)](https://pages.cloudflare.com)
 
 ## ✨ 特性
 
 - 🌐 **线报酷平台** - 实时爬取线报酷(https://new.ixbk.net/)最新羊毛线报
 - 🎯 **智能过滤** - 自动识别并过滤砍价、拉人等低质量内容
-- ⚡ **实时更新** - 每次访问动态抓取最新数据，无需定时任务
+- 🔄 **增量更新** - 只推送新内容，避免重复，支持持久化存储
+- ⚡ **实时抓取** - 每次访问动态抓取最新数据
 - 📡 **多格式支持** - 同时支持RSS 2.0和JSON API
 - 🎨 **Web界面** - 现代化的响应式线报展示界面
-- ☁️ **Serverless架构** - 支持Vercel、Netlify、Cloudflare Pages一键部署
+- ☁️ **Serverless架构** - 支持Vercel、Cloudflare Pages一键部署
 - 🔍 **搜索过滤** - Web界面支持实时搜索和分类过滤
 - 🌍 **全球加速** - CDN缓存确保访问速度
 - 🔒 **开源透明** - 代码完全开源，数据处理透明可控
@@ -37,23 +37,13 @@ RSS订阅: https://your-project.vercel.app/api/feed
 JSON API: https://your-project.vercel.app/api/posts
 ```
 
-### 方式二：Netlify部署
-
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/fyyo/yangmao)
-
-1. 点击上方按钮或访问 [Netlify](https://app.netlify.com/start)
-2. 连接你的GitHub仓库
-3. 构建设置保持默认即可
-4. 点击"Deploy site"
-
-**访问地址**：
-```
-Web界面: https://your-project.netlify.app/
-RSS订阅: https://your-project.netlify.app/api/feed
-JSON API: https://your-project.netlify.app/api/posts
+**增量更新配置（可选）**：
+```bash
+# 创建 Vercel KV 存储以支持增量更新
+vercel kv create published-links
 ```
 
-### 方式三：Cloudflare Pages部署
+### 方式二：Cloudflare Pages部署
 
 1. 访问 [Cloudflare Pages](https://pages.cloudflare.com)
 2. 点击"Create a project" → 连接GitHub仓库
@@ -69,18 +59,95 @@ RSS订阅: https://yangmao.pages.dev/api/feed
 JSON API: https://yangmao.pages.dev/api/posts
 ```
 
-**详细教程**: [CLOUDFLARE_PAGES_DEPLOY.md](CLOUDFLARE_PAGES_DEPLOY.md)
+**增量更新配置（可选）**：
+1. 在 Cloudflare Dashboard 创建 KV 命名空间 `PUBLISHED_LINKS`
+2. 在 Pages 项目设置中绑定 KV 命名空间
+
+详细教程: [CLOUDFLARE_PAGES_DEPLOY.md](CLOUDFLARE_PAGES_DEPLOY.md)
+
+## 🔄 增量更新功能
+
+### 功能说明
+
+项目支持增量更新，避免重复推送已发布的线报：
+
+**增量模式（默认）**：
+```
+https://your-domain.com/api/feed
+```
+- 只返回自上次更新以来的新内容
+- 自动记录已发布的文章链接
+- RSS标题显示统计信息（新内容数、已追踪总数、更新时间）
+
+**查看全部**：
+```
+https://your-domain.com/api/feed?all=true
+```
+- 返回所有符合质量标准的线报
+- 不更新已发布记录
+
+**重置记录**：
+```
+https://your-domain.com/api/feed?reset=true
+```
+- 清空已发布记录
+- 下次访问将推送所有线报
+
+### 存储配置
+
+系统支持两种持久化存储方案：
+
+#### Vercel KV（Vercel 部署）
+
+```bash
+# 1. 安装 Vercel CLI
+npm i -g vercel
+
+# 2. 创建 KV 存储
+vercel kv create published-links
+
+# 3. 安装依赖
+npm install @vercel/kv
+```
+
+Vercel 会自动设置环境变量 `KV_REST_API_URL` 和 `KV_REST_API_TOKEN`。
+
+#### Cloudflare KV（Cloudflare Pages 部署）
+
+1. 在 Cloudflare Dashboard 创建 KV 命名空间：
+   - 进入 **Workers & Pages** > **KV**
+   - 点击 **Create namespace**
+   - 命名为 `PUBLISHED_LINKS`
+
+2. 绑定到 Pages 项目：
+   - 进入 **Pages** > 你的项目 > **Settings** > **Functions**
+   - **KV namespace bindings** 添加绑定
+   - Variable name: `PUBLISHED_LINKS`
+
+#### 内存存储（Fallback）
+
+如果未配置 KV 存储，系统会自动使用内存存储（仅单次请求有效）。
+
+### 存储数据结构
+
+```json
+{
+  "links": ["https://new.ixbk.net/article/123", ...],
+  "lastUpdate": 1697123456789
+}
+```
+
+- 最多保留 800 条链接记录
+- 超过后自动保留最新的 800 条
 
 ## 📖 工作原理
 
 ### Serverless架构
 
-本项目采用完全Serverless架构，无需服务器维护：
-
 ```
 用户请求 → CDN边缘节点 → Serverless函数 → 实时爬取线报酷 → 返回数据
-                                      ↓
-                               30分钟CDN缓存
+                                       ↓
+                                30分钟CDN缓存
 ```
 
 **关键特点**：
@@ -93,28 +160,27 @@ JSON API: https://yangmao.pages.dev/api/posts
 
 ```
 yangmao/
-├── api/                       # Vercel/Netlify Serverless Functions
-│   ├── feed.js               # RSS Feed动态生成
-│   └── posts.js              # JSON API动态生成
-├── functions/                 # Cloudflare Pages Functions
-│   └── api/
-│       ├── feed.js           # RSS Feed动态生成
-│       └── posts.js          # JSON API动态生成
-├── public/                    # 静态网站文件
-│   └── index.html            # Web界面
-├── src/                       # Python源码（本地测试用）
-│   ├── crawlers/             # 爬虫模块
-│   ├── filters/              # 过滤模块
-│   ├── rss/                  # RSS生成
-│   └── config/               # 配置文件
-├── vercel.json               # Vercel配置
-├── netlify.toml              # Netlify配置
-└── README.md                 # 项目说明
+├── api/                           # Vercel Serverless Functions
+│   ├── feed.js                   # RSS Feed动态生成（增量更新）
+│   └── posts.js                  # JSON API动态生成
+├── functions/                     # Cloudflare Pages Functions
+│   ├── api/
+│   │   ├── feed.js               # RSS Feed（增量更新）
+│   │   └── posts.js              # JSON API
+│   └── storage/
+│       └── cloudflare-persistence.js  # Cloudflare KV存储
+├── src/
+│   ├── storage/
+│   │   └── persistence.js        # Vercel KV存储
+│   ├── crawlers/                 # 爬虫模块
+│   ├── filters/                  # 过滤模块
+│   └── rss/                      # RSS生成
+├── public/
+│   └── index.html                # Web界面
+└── vercel.json                   # Vercel配置
 ```
 
 ## 🎨 Web界面功能
-
-访问部署后的网站，你将看到：
 
 ### 主要功能
 - 📊 **统计概览** - 显示总线报数、最新更新时间、平均质量分
@@ -124,14 +190,6 @@ yangmao/
 - ⭐ **质量评分** - 每条线报显示质量星级（60-100分）
 - 🕒 **时间显示** - 友好的发布时间格式
 - 🎯 **快速订阅** - 一键订阅RSS源
-
-## 📊 数据源
-
-### 当前支持
-- ✅ **线报酷** - https://new.ixbk.net/
-  - 实时爬取最新线报
-  - 智能过滤低质量内容
-  - 质量评分算法
 
 ## 🎯 智能过滤规则
 
@@ -168,6 +226,8 @@ yangmao/
 ### RSS Feed接口
 ```
 GET /api/feed
+GET /api/feed?all=true      # 查看全部
+GET /api/feed?reset=true    # 重置记录
 ```
 
 **响应格式**: RSS 2.0 XML  
@@ -194,10 +254,6 @@ GET /api/posts
       "url": "线报链接",
       "category": "分类",
       "content": "完整内容",
-      "summary": "内容摘要",
-      "author": "发布者",
-      "publish_time": "2025-10-13T10:30:00Z",
-      "comments": 10,
       "quality_score": 85
     }
   ]
@@ -211,6 +267,12 @@ GET /api/posts
 - **桌面**: Fluent Reader, Thunderbird
 - **浏览器**: Feedbro, RSS Feed Reader
 
+**推荐订阅配置**：
+```
+订阅地址: https://your-domain.com/api/feed
+更新频率: 30分钟或1小时
+```
+
 ## 💰 成本说明
 
 ### 完全免费的Serverless方案
@@ -218,24 +280,17 @@ GET /api/posts
 **Vercel免费额度**:
 - Serverless函数: 100GB-小时/月
 - 带宽: 100GB/月
-- 函数执行时间: 10秒
+- KV存储: 256MB（可选）
 - ✅ 个人使用完全够用
-
-**Netlify免费额度**:
-- Functions调用: 125k次/月
-- 执行时间: 100小时/月
-- 带宽: 100GB/月
-- ✅ 轻松应对日常访问
 
 **Cloudflare Pages免费额度**:
 - Functions请求: 10万次/天
 - CPU时间: 1000万ms/天
+- KV存储: 1GB, 10万次读/天（可选）
 - 带宽: 无限
 - ✅ 最慷慨的免费额度
 
 ## 🛠️ 本地开发
-
-如果你想本地测试或开发：
 
 ```bash
 # 克隆项目
@@ -253,8 +308,6 @@ python -m http.server 8000 -d public
 
 # 访问 http://localhost:8000
 ```
-
-**注意**: Serverless函数在本地需要使用各平台的CLI工具测试。
 
 ## ⚠️ 免责声明
 
@@ -296,7 +349,6 @@ python -m http.server 8000 -d public
 
 - [线报酷](https://new.ixbk.net/) - 提供羊毛线报数据来源
 - [Vercel](https://vercel.com) - Serverless部署平台
-- [Netlify](https://netlify.com) - Serverless部署平台
 - [Cloudflare Pages](https://pages.cloudflare.com) - 边缘计算平台
 
 ## 📞 反馈与支持
