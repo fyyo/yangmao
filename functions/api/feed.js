@@ -313,14 +313,45 @@ function generateRSS(posts, stats = {}) {
 
   for (const post of posts) {
     const pubDate = post.pubDate.toUTCString();
+    
+    // 格式化内容为简洁的HTML
+    let contentHtml = '';
+    
+    // 分类
+    contentHtml += `<p><strong>📂 分类：</strong>${escapeXml(post.category)}</p>`;
+    contentHtml += `<hr/>`;
+    
+    // 主要内容
+    if (post.content) {
+      contentHtml += `<p>${escapeXml(post.content).replace(/\n/g, '<br/>')}</p>`;
+    }
+    
+    // 图片
+    if (post.images && post.images.length > 0) {
+      contentHtml += `<p><strong>📷 图片：</strong></p>`;
+      post.images.forEach((img, i) => {
+        contentHtml += `<p><img src="${escapeXml(img)}" alt="图片${i+1}" style="max-width:100%;height:auto;"/></p>`;
+      });
+    }
+    
+    // 评论区补充
+    if (post.links && post.links.length > 0) {
+      contentHtml += `<hr/>`;
+      contentHtml += `<p><strong>💬 评论区补充信息：</strong></p>`;
+      post.links.forEach(link => {
+        contentHtml += `<p>• ${escapeXml(link)}</p>`;
+      });
+    }
+    
+    // 原文链接
+    contentHtml += `<hr/>`;
+    contentHtml += `<p><a href="${escapeXml(post.link)}">🔗 查看原文</a></p>`;
+    
     xml += `
     <item>
       <title><![CDATA[${post.title}]]></title>
       <link>${escapeXml(post.link)}</link>
-      <description><![CDATA[
-        <p><strong>分类:</strong> ${post.category}</p>
-        <pre>${post.content}</pre>
-      ]]></description>
+      <description><![CDATA[${contentHtml}]]></description>
       <category>${post.category}</category>
       <pubDate>${pubDate}</pubDate>
       <guid isPermaLink="true">${escapeXml(post.link)}</guid>
@@ -451,28 +482,6 @@ function extractCommentLinks(html) {
       }
     }
     
-    /**
-     * 批量获取文章详情页内容
-     */
-    async function fetchDetailsForPosts(posts) {
-      return await Promise.all(
-        posts.map(async (post) => {
-          try {
-            const detail = await fetchDetailContent(post.link);
-            if (detail) {
-              post.content = detail.content;
-              post.links = detail.links;
-              post.images = detail.images;
-            }
-            return post;
-          } catch (error) {
-            console.error(`获取详情失败 ${post.link}:`, error);
-            return post;
-          }
-        })
-      );
-    }
-    
     // 提取纯文本URL
     const commentText = commentContent.replace(/<[^>]+>/g, ' ');
     const urlPattern = /(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/g;
@@ -485,11 +494,33 @@ function extractCommentLinks(html) {
     }
     
     // 提取包含获取方法的关键信息
-    if (links.filter(l => l.startsWith(`[${index}]`)).length === 0) {
+    if (links.length === 0) {
       const keywords = ['口令', '密令', '链接', '进入', '搜索', '打开', '复制', '淘宝', '京东', '拼多多'];
       if (keywords.some(kw => commentText.includes(kw))) {
         const shortText = commentText.substring(0, 200).trim();
         if (shortText.length > 10) {
+
+/**
+ * 批量获取文章详情页内容
+ */
+async function fetchDetailsForPosts(posts) {
+  return await Promise.all(
+    posts.map(async (post) => {
+      try {
+        const detail = await fetchDetailContent(post.link);
+        if (detail) {
+          post.content = detail.content;
+          post.links = detail.links;
+          post.images = detail.images;
+        }
+        return post;
+      } catch (error) {
+        console.error(`获取详情失败 ${post.link}:`, error);
+        return post;
+      }
+    })
+  );
+}
           links.push(`[${index}] ${shortText}`);
         }
       }

@@ -303,38 +303,38 @@ function generateRSS(posts, stats = {}) {
   for (const post of posts) {
     const pubDate = post.pubDate.toUTCString();
     
-    // 格式化内容 - 类似前端展示
-    let contentHtml = `<div style="font-family: sans-serif; line-height: 1.6;">`;
-    contentHtml += `<p><strong>📂 分类:</strong> ${escapeXml(post.category)}</p>`;
+    // 格式化内容为简洁的HTML
+    let contentHtml = '';
+    
+    // 分类
+    contentHtml += `<p><strong>📂 分类：</strong>${escapeXml(post.category)}</p>`;
+    contentHtml += `<hr/>`;
     
     // 主要内容
     if (post.content) {
-      contentHtml += `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">`;
-      contentHtml += `<pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0;">${escapeXml(post.content)}</pre>`;
-      contentHtml += `</div>`;
+      contentHtml += `<p>${escapeXml(post.content).replace(/\n/g, '<br/>')}</p>`;
     }
     
     // 图片
     if (post.images && post.images.length > 0) {
-      contentHtml += `<p><strong>📷 图片:</strong></p>`;
+      contentHtml += `<p><strong>📷 图片：</strong></p>`;
       post.images.forEach((img, i) => {
-        contentHtml += `<p><img src="${escapeXml(img)}" alt="图片${i+1}" style="max-width: 100%; height: auto; border-radius: 8px;"/></p>`;
+        contentHtml += `<p><img src="${escapeXml(img)}" alt="图片${i+1}" style="max-width:100%;height:auto;"/></p>`;
       });
     }
     
     // 评论区补充
     if (post.links && post.links.length > 0) {
-      contentHtml += `<div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-top: 15px;">`;
-      contentHtml += `<p style="font-weight: bold; color: #92400e;">💬 评论区补充信息:</p>`;
-      contentHtml += `<div style="color: #78350f; font-size: 0.9em;">`;
+      contentHtml += `<hr/>`;
+      contentHtml += `<p><strong>💬 评论区补充信息：</strong></p>`;
       post.links.forEach(link => {
-        contentHtml += `<p style="margin: 5px 0;">${escapeXml(link)}</p>`;
+        contentHtml += `<p>• ${escapeXml(link)}</p>`;
       });
-      contentHtml += `</div></div>`;
     }
     
-    contentHtml += `<p style="margin-top: 20px;"><a href="${escapeXml(post.link)}" target="_blank" style="color: #3b82f6; text-decoration: none;">🔗 查看原文 →</a></p>`;
-    contentHtml += `</div>`;
+    // 原文链接
+    contentHtml += `<hr/>`;
+    contentHtml += `<p><a href="${escapeXml(post.link)}">🔗 查看原文</a></p>`;
     
     xml += `
     <item>
