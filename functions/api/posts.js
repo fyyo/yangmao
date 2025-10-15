@@ -25,7 +25,7 @@ export async function onRequest(context) {
       title: '羊毛线报 - 线报酷精选',
       description: '自动抓取线报酷最新羊毛线报，实时更新',
       link: 'https://new.ixbk.net/',
-      updated: new Date().toISOString(),
+      updated: getChinaTime().toISOString(),
       count: posts.length,
       items: posts,
     };
@@ -133,14 +133,12 @@ async function parseHtml(html) {
         author: author,
         publish_time: parseTime(timeStr),
         comments: comments,
-        quality_score: calculateQualityScore(title, content, category, comments, timeStr),
       });
     }
   }
   
-  // 按时间排序并过滤低质量内容
+  // 直接按时间排序，不过滤质量
   const filteredPosts = posts
-    .filter(post => post.quality_score >= 60)
     .sort((a, b) => new Date(b.publish_time) - new Date(a.publish_time))
     .slice(0, 20); // 先取20条，因为要爬详情页
   
@@ -210,10 +208,18 @@ function calculateQualityScore(title, content, category, comments, timeStr) {
 }
 
 /**
+ * 获取当前北京时间（Asia/Shanghai）
+ */
+function getChinaTime() {
+  const chinaTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' });
+  return new Date(chinaTimeStr);
+}
+
+/**
  * 解析时间字符串
  */
 function parseTime(timeStr) {
-  if (!timeStr) return new Date().toISOString();
+  if (!timeStr) return getChinaTime().toISOString();
   
   // 匹配 HH:MM 格式
   const match = timeStr.match(/(\d{1,2}):(\d{2})/);
@@ -221,34 +227,29 @@ function parseTime(timeStr) {
     const hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
     
-    // 获取当前UTC时间
-    const now = new Date();
+    // 获取当前北京时间
+    const chinaTime = getChinaTime();
     
-    // 转换为北京时间（UTC+8）
-    const chinaOffset = 8 * 60; // 8小时的分钟数
-    const utcTime = now.getTime();
-    const chinaTime = new Date(utcTime + chinaOffset * 60 * 1000);
-    
-    // 使用北京时间的年月日，设置时分秒
-    const pubDate = new Date(Date.UTC(
-      chinaTime.getUTCFullYear(),
-      chinaTime.getUTCMonth(),
-      chinaTime.getUTCDate(),
-      hour - 8, // 减去8小时转回UTC
+    // 创建北京时间的日期对象（使用今天的日期 + 提取的时分）
+    const pubDate = new Date(
+      chinaTime.getFullYear(),
+      chinaTime.getMonth(),
+      chinaTime.getDate(),
+      hour,
       minute,
       0,
       0
-    ));
+    );
     
     // 如果时间比现在晚，说明是昨天的
-    if (pubDate > now) {
-      pubDate.setUTCDate(pubDate.getUTCDate() - 1);
+    if (pubDate > chinaTime) {
+      pubDate.setDate(pubDate.getDate() - 1);
     }
     
     return pubDate.toISOString();
   }
   
-  return new Date().toISOString();
+  return getChinaTime().toISOString();
 }
 
 /**

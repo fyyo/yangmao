@@ -44,7 +44,10 @@ export default async function handler(req, res) {
       posts = allPosts.filter(post => !publishedLinks.has(post.link));
       newCount = posts.length;
       
-      // 将新文章添加到已发布集合
+      // 限制返回数量为20条（但会记录所有新文章）
+      const postsToReturn = posts.slice(0, 20);
+      
+      // 将所有新文章添加到已发布集合（不只是返回的20条）
       posts.forEach(post => publishedLinks.add(post.link));
       
       // 限制存储大小（最多保留800条）
@@ -55,6 +58,12 @@ export default async function handler(req, res) {
       
       // 保存到持久化存储
       await savePublishedLinks(publishedLinks, Date.now());
+      
+      // 并发获取前20条的详情页内容
+      posts = await fetchDetailsForPosts(postsToReturn);
+    } else {
+      // showAll模式：限制20条并获取详情
+      posts = await fetchDetailsForPosts(posts.slice(0, 20));
     }
     
     // 生成RSS XML（带统计信息）
@@ -138,49 +147,27 @@ async function parseHtml(html) {
     const timeStr = timeMatch ? timeMatch[1].trim() : '';
     
     if (title && link) {
-      const qualityScore = calculateQualityScore(title, content, category, 0, timeStr);
-      
       posts.push({
         title: decodeHtmlEntities(title),
         link: link,
         category: category,
         content: decodeHtmlEntities(content || title),
         pubDate: parseTime(timeStr),
-        quality_score: qualityScore,
       });
     }
   }
   
-  // 按质量分数过滤并按时间排序
-  const topPosts = posts
-    .filter(post => post.quality_score >= 60)
-    .sort((a, b) => b.pubDate - a.pubDate)
-    .slice(0, 20); // 先取20条
-  
-  // 并发获取详情页内容
-  const postsWithDetail = await Promise.all(
-    topPosts.map(async (post) => {
-      try {
-        const detail = await fetchDetailContent(post.link);
-        if (detail) {
-          post.content = detail;
-        }
-        return post;
-      } catch (error) {
-        console.error(`获取详情失败 ${post.link}:`, error);
-        return post;
-      }
-    })
-  );
-  
-  return postsWithDetail;
+  // 直接按时间排序，不过滤质量
+  return posts.sort((a, b) => b.pubDate - a.pubDate);
 }
 
 /**
  * 解析时间字符串
  */
 function parseTime(timeStr) {
-  if (!timeStr) return new Date();
+  if (!timeStr) {
+    return getChinaTime();
+  }
   
   // 匹配 HH:MM 格式
   const match = timeStr.match(/(\d{1,2}):(\d{2})/);
@@ -188,34 +175,38 @@ function parseTime(timeStr) {
     const hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
     
-    // 获取当前UTC时间
-    const now = new Date();
+    // 获取当前北京时间
+    const chinaTime = getChinaTime();
     
-    // 转换为北京时间（UTC+8）
-    const chinaOffset = 8 * 60; // 8小时的分钟数
-    const utcTime = now.getTime();
-    const chinaTime = new Date(utcTime + chinaOffset * 60 * 1000);
-    
-    // 使用北京时间的年月日，设置时分秒
-    const pubDate = new Date(Date.UTC(
-      chinaTime.getUTCFullYear(),
-      chinaTime.getUTCMonth(),
-      chinaTime.getUTCDate(),
-      hour - 8, // 减去8小时转回UTC
+    // 创建北京时间的日期对象（使用今天的日期 + 提取的时分）
+    const pubDate = new Date(
+      chinaTime.getFullYear(),
+      chinaTime.getMonth(),
+      chinaTime.getDate(),
+      hour,
       minute,
       0,
       0
-    ));
+    );
     
     // 如果时间比现在晚，说明是昨天的
-    if (pubDate > now) {
-      pubDate.setUTCDate(pubDate.getUTCDate() - 1);
+    if (pubDate > chinaTime) {
+      pubDate.setDate(pubDate.getDate() - 1);
     }
     
     return pubDate;
   }
   
-  return new Date();
+  return getChinaTime();
+}
+
+/**
+ * 获取当前北京时间（Asia/Shanghai）
+ */
+function getChinaTime() {
+  // 使用 toLocaleString 转换为北京时间字符串，然后创建 Date 对象
+  const chinaTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' });
+  return new Date(chinaTimeStr);
 }
 
 /**
@@ -282,7 +273,9 @@ function decodeHtmlEntities(text) {
  * 生成RSS 2.0格式的XML
  */
 function generateRSS(posts, stats = {}) {
-  const now = new Date().toUTCString();
+  // 使用北京时间
+  const chinaTime = getChinaTime();
+  const now = chinaTime.toUTCString();
   
   // 构建描述信息
   let description = '自动抓取线报酷最新羊毛线报，实时更新';
@@ -475,4 +468,24 @@ function extractCommentLinks(html) {
   }
   
   return links;
+}
+
+/**
+ * 批量获取文章详情页内容
+ */
+async function fetchDetailsForPosts(posts) {
+  return await Promise.all(
+    posts.map(async (post) => {
+      try {
+        const detail = await fetchDetailContent(post.link);
+        if (detail) {
+          post.content = detail;
+        }
+        return post;
+      } catch (error) {
+        console.error(`获取详情失败 ${post.link}:`, error);
+        return post;
+      }
+    })
+  );
 }
