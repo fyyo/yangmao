@@ -225,10 +225,18 @@ function getChinaTime() {
 }
 
 /**
- * 解析时间字符串 - 返回ISO字符串但保持北京时间的数值
+ * 解析时间字符串 - 返回北京时间字符串（不带Z，避免浏览器时区转换）
  */
 function parseTime(timeStr) {
-  if (!timeStr) return getChinaTime().toISOString();
+  if (!timeStr) {
+    const { year, month, day, hour, minute, second } = getChinaTimeComponents();
+    const monthStr = String(month).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const hourStr = String(hour).padStart(2, '0');
+    const minuteStr = String(minute).padStart(2, '0');
+    const secondStr = String(second).padStart(2, '0');
+    return `${year}-${monthStr}-${dayStr}T${hourStr}:${minuteStr}:${secondStr}`;
+  }
   
   // 匹配 HH:MM 格式
   const match = timeStr.match(/(\d{1,2}):(\d{2})/);
@@ -239,18 +247,22 @@ function parseTime(timeStr) {
     // 获取今天的北京时间组件
     const { year, month, day } = getChinaTimeComponents();
     
-    // 构造北京时间的ISO字符串（但实际是伪造的，因为ISO应该是UTC）
-    // 我们返回一个看起来像北京时间的字符串
+    // 返回北京时间字符串（不带Z，避免浏览器自动转换时区）
     const monthStr = String(month).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
     const hourStr = String(hour).padStart(2, '0');
     const minuteStr = String(minute).padStart(2, '0');
     
-    // 返回ISO格式但是北京时间的值
-    return `${year}-${monthStr}-${dayStr}T${hourStr}:${minuteStr}:00.000Z`;
+    return `${year}-${monthStr}-${dayStr}T${hourStr}:${minuteStr}:00`;
   }
   
-  return getChinaTime().toISOString();
+  const { year, month, day, hour, minute, second } = getChinaTimeComponents();
+  const monthStr = String(month).padStart(2, '0');
+  const dayStr = String(day).padStart(2, '0');
+  const hourStr = String(hour).padStart(2, '0');
+  const minuteStr = String(minute).padStart(2, '0');
+  const secondStr = String(second).padStart(2, '0');
+  return `${year}-${monthStr}-${dayStr}T${hourStr}:${minuteStr}:${secondStr}`;
 }
 
 /**
