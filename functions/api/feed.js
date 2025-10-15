@@ -343,18 +343,6 @@ function generateRSS(posts, stats = {}) {
     }
     
     // 原文链接
-
-/**
- * HTML实体转义（用于CDATA内的文本内容）
- * 只转义&、"、'，不转义< >（因为在CDATA中需要保留HTML标签）
- */
-function htmlEscape(text) {
-  if (!text) return '';
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
     contentHtml += `<hr/>`;
     contentHtml += `<p><a href="${htmlEscape(post.link)}">🔗 查看原文</a></p>`;
     
@@ -386,6 +374,18 @@ function escapeXml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+/**
+ * HTML实体转义（用于CDATA内的文本内容）
+ * 只转义&、"、'，不转义< >（因为在CDATA中需要保留HTML标签）
+ */
+function htmlEscape(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /**
@@ -510,6 +510,16 @@ function extractCommentLinks(html) {
       if (keywords.some(kw => commentText.includes(kw))) {
         const shortText = commentText.substring(0, 200).trim();
         if (shortText.length > 10) {
+          links.push(`[${index}] ${shortText}`);
+        }
+      }
+    }
+    
+    index++;
+  }
+  
+  return links;
+}
 
 /**
  * 批量获取文章详情页内容
@@ -535,14 +545,4 @@ async function fetchDetailsForPosts(posts) {
       }
     })
   );
-}
-          links.push(`[${index}] ${shortText}`);
-        }
-      }
-    }
-    
-    index++;
-  }
-  
-  return links;
 }

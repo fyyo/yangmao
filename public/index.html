@@ -423,7 +423,6 @@
             const updateTime = new Date(data.updated);
             document.getElementById('updateTime').textContent =
                 updateTime.toLocaleString('zh-CN', {
-                    timeZone: 'Asia/Shanghai',
                     month: 'short',
                     day: 'numeric',
                     hour: '2-digit',
@@ -507,13 +506,12 @@
                     <div class="post-links-content">${post.links.join('<br>')}</div>
                 </div>` : '';
             
-            // 解析时间并转换为上海时区
+            // 解析时间（后端已返回正确的北京时间ISO字符串）
             let time = '';
             if (post.publish_time) {
                 const date = new Date(post.publish_time);
-                // 转换为上海时区的时间字符串
+                // 直接格式化，不需要再转换时区
                 const options = {
-                    timeZone: 'Asia/Shanghai',
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit',
