@@ -361,25 +361,15 @@
                     <div class="stat-label">最新更新</div>
                     <div class="stat-value" style="font-size: 1.2rem;" id="updateTime">-</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">数据来源</div>
-                    <div class="stat-value" style="font-size: 1.2rem;">线报酷</div>
-                </div>
             </div>
 
             <div class="search-box">
-                <input 
-                    type="text" 
-                    class="search-input" 
+                <input
+                    type="text"
+                    class="search-input"
                     placeholder="🔍 搜索线报标题或内容..."
                     id="searchInput"
                 >
-            </div>
-
-            <div class="filters">
-                <div class="filter-group" id="filterGroup">
-                    <button class="filter-btn active" data-category="all">全部</button>
-                </div>
             </div>
 
             <div id="postsContainer">
@@ -408,7 +398,6 @@
                 allPosts = data.items || [];
                 
                 updateStats(data);
-                generateFilters();
                 renderPosts();
             } catch (error) {
                 console.error('加载数据失败:', error);
@@ -432,37 +421,7 @@
             // 移除平均质量分
         }
 
-        function generateFilters() {
-            const categories = new Set();
-            allPosts.forEach(post => {
-                if (post.category) {
-                    categories.add(post.category);
-                }
-            });
-
-            const filterGroup = document.getElementById('filterGroup');
-            categories.forEach(category => {
-                const btn = document.createElement('button');
-                btn.className = 'filter-btn';
-                btn.dataset.category = category;
-                btn.textContent = category;
-                btn.onclick = () => filterByCategory(category);
-                filterGroup.appendChild(btn);
-            });
-        }
-
-        function filterByCategory(category) {
-            currentFilter = category;
-            
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.dataset.category === category) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            renderPosts();
-        }
+        // 已删除分类过滤功能
 
         document.getElementById('searchInput').addEventListener('input', (e) => {
             searchQuery = e.target.value.toLowerCase();
@@ -471,10 +430,6 @@
 
         function renderPosts() {
             let posts = allPosts;
-            
-            if (currentFilter !== 'all') {
-                posts = posts.filter(post => post.category === currentFilter);
-            }
             
             if (searchQuery) {
                 posts = posts.filter(post => 
