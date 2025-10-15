@@ -204,13 +204,12 @@ function calculateQualityScore(title, content, category, comments, timeStr) {
  */
 function getChinaTime() {
   const now = new Date();
-  // 使用toLocaleString获取北京时间字符串，然后转回Date对象
-  const beijingTimeStr = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' });
-  return new Date(beijingTimeStr);
+  // 获取UTC时间戳并加8小时（28800000毫秒）
+  return new Date(now.getTime() + 28800000);
 }
 
 /**
- * 解析时间字符串
+ * 解析时间字符串 - 保持北京时间
  */
 function parseTime(timeStr) {
   if (!timeStr) return getChinaTime().toISOString();
@@ -221,13 +220,16 @@ function parseTime(timeStr) {
     const hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
     
-    // 获取当前北京时间
+    // 获取今天的北京时间日期
     const chinaTime = getChinaTime();
+    const year = chinaTime.getUTCFullYear();
+    const month = chinaTime.getUTCMonth();
+    const day = chinaTime.getUTCDate();
     
-    // 设置时间
-    chinaTime.setHours(hour, minute, 0, 0);
+    // 直接用北京时间构造（因为chinaTime已经是UTC+8了）
+    const timestamp = Date.UTC(year, month, day, hour, minute, 0, 0);
     
-    return chinaTime.toISOString();
+    return new Date(timestamp).toISOString();
   }
   
   return getChinaTime().toISOString();
