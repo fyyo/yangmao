@@ -223,16 +223,9 @@ function parseTime(timeStr) {
     // 获取当前北京时间
     const chinaTime = getChinaTime();
     
-    // 创建北京时间的日期对象（使用今天的日期 + 提取的时分）
-    const pubDate = new Date(
-      chinaTime.getFullYear(),
-      chinaTime.getMonth(),
-      chinaTime.getDate(),
-      hour,
-      minute,
-      0,
-      0
-    );
+    // 创建本地时间的日期对象
+    const pubDate = new Date(chinaTime);
+    pubDate.setHours(hour, minute, 0, 0);
     
     // 如果时间比现在晚，说明是昨天的
     if (pubDate > chinaTime) {
