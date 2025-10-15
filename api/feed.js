@@ -303,23 +303,23 @@ function generateRSS(posts, stats = {}) {
   for (const post of posts) {
     const pubDate = post.pubDate.toUTCString();
     
-    // 格式化内容为简洁的HTML
+    // 格式化内容为简洁的HTML（CDATA内部不需要转义HTML标签，只转义文本内容）
     let contentHtml = '';
     
     // 分类
-    contentHtml += `<p><strong>📂 分类：</strong>${escapeXml(post.category)}</p>`;
+    contentHtml += `<p><strong>📂 分类：</strong>${htmlEscape(post.category)}</p>`;
     contentHtml += `<hr/>`;
     
     // 主要内容
     if (post.content) {
-      contentHtml += `<p>${escapeXml(post.content).replace(/\n/g, '<br/>')}</p>`;
+      contentHtml += `<p>${htmlEscape(post.content).replace(/\n/g, '<br/>')}</p>`;
     }
     
     // 图片
     if (post.images && post.images.length > 0) {
       contentHtml += `<p><strong>📷 图片：</strong></p>`;
       post.images.forEach((img, i) => {
-        contentHtml += `<p><img src="${escapeXml(img)}" alt="图片${i+1}" style="max-width:100%;height:auto;"/></p>`;
+        contentHtml += `<p><img src="${htmlEscape(img)}" alt="图片${i+1}" style="max-width:100%;height:auto;"/></p>`;
       });
     }
     
@@ -328,13 +328,13 @@ function generateRSS(posts, stats = {}) {
       contentHtml += `<hr/>`;
       contentHtml += `<p><strong>💬 评论区补充信息：</strong></p>`;
       post.links.forEach(link => {
-        contentHtml += `<p>• ${escapeXml(link)}</p>`;
+        contentHtml += `<p>• ${htmlEscape(link)}</p>`;
       });
     }
     
     // 原文链接
     contentHtml += `<hr/>`;
-    contentHtml += `<p><a href="${escapeXml(post.link)}">🔗 查看原文</a></p>`;
+    contentHtml += `<p><a href="${htmlEscape(post.link)}">🔗 查看原文</a></p>`;
     
     xml += `
     <item>
@@ -364,6 +364,18 @@ function escapeXml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+
+/**
+ * HTML实体转义（用于CDATA内的文本内容）
+ * 只转义&、"、'，不转义< >（因为在CDATA中需要保留HTML标签）
+ */
+function htmlEscape(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 }
 
 /**
