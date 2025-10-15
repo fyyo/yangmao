@@ -19,11 +19,20 @@ export default async function handler(req, res) {
     const posts = await fetchIxbkPosts();
     
     // 生成JSON响应
+    // 格式化updated时间为北京时间字符串（不带Z）
+    const { year, month, day, hour, minute, second } = getChinaTimeComponents();
+    const monthStr = String(month).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const hourStr = String(hour).padStart(2, '0');
+    const minuteStr = String(minute).padStart(2, '0');
+    const secondStr = String(second).padStart(2, '0');
+    const updatedTime = `${year}-${monthStr}-${dayStr}T${hourStr}:${minuteStr}:${secondStr}`;
+    
     const jsonData = {
       title: '羊毛线报 - 线报酷精选',
       description: '自动抓取线报酷最新羊毛线报，实时更新',
       link: 'https://new.ixbk.net/',
-      updated: getChinaTime().toISOString(),
+      updated: updatedTime,
       count: posts.length,
       items: posts,
     };
