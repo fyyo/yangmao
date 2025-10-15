@@ -172,14 +172,11 @@ function parseTime(timeStr) {
     // 获取当前北京时间
     const chinaTime = getChinaTime();
     
-    // 创建本地时间的日期对象
+    // 创建今天的日期对象
     const pubDate = new Date(chinaTime);
     pubDate.setHours(hour, minute, 0, 0);
     
-    // 如果时间比现在晚，说明是昨天的
-    if (pubDate > chinaTime) {
-      pubDate.setDate(pubDate.getDate() - 1);
-    }
+    // 线报酷的时间都是今天的，不需要判断昨天
     
     return pubDate;
   }
