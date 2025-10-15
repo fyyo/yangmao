@@ -37,7 +37,10 @@ export async function onRequest(context) {
     const lastRefreshTime = storage.lastUpdate;
     const publishedLinks = new Set(storage.posts.map(p => p.link));
     
+    // 本次刷新时间
+    const currentRefreshTime = Date.now();
     console.log(`⏰ 上次刷新时间: ${new Date(lastRefreshTime).toLocaleString('zh-CN')}`);
+    console.log(`⏰ 本次刷新时间: ${new Date(currentRefreshTime).toLocaleString('zh-CN')}`);
 
     // 爬取线报酷第一页数据
     const freshPosts = await fetchIxbkPosts();
@@ -56,18 +59,17 @@ export async function onRequest(context) {
       posts = await fetchDetailsForPosts(newPosts);
       
       // 更新已发布记录：保存当前所有文章（用于下次判断）
-      await savePublishedPosts(freshPosts, Date.now(), context.env);
+      await savePublishedPosts(freshPosts, currentRefreshTime, context.env);
       
       console.log(`📤 RSS源返回 ${posts.length} 篇新文章`);
     } else {
       console.log(`📤 没有新文章，RSS源为空`);
     }
     
-    // 生成RSS XML（只包含新文章）
+    // 生成RSS XML（只包含新文章，不显示统计信息）
     const rssXml = generateRSS(posts, {
       showAll: false,
-      newCount,
-      lastUpdate: new Date(lastRefreshTime).toLocaleString('zh-CN')
+      refreshTime: currentRefreshTime
     });
     
     // 动态缓存时间：60-600秒（1-10分钟）
@@ -268,18 +270,12 @@ function decodeHtmlEntities(text) {
  * 生成RSS 2.0格式的XML
  */
 function generateRSS(posts, stats = {}) {
-  // 使用北京时间
-  const chinaTime = getChinaTime();
-  const now = chinaTime.toUTCString();
+  // 使用统一的刷新时间
+  const refreshTime = stats.refreshTime ? new Date(stats.refreshTime) : getChinaTime();
+  const now = refreshTime.toUTCString();
   
-  // 构建描述信息
-  let description = '自动抓取线报酷最新羊毛线报，仅显示增量更新';
-  if (stats.newCount !== undefined) {
-    description += ` | 本次新增: ${stats.newCount} 条`;
-  }
-  if (stats.lastUpdate) {
-    description += ` | 上次刷新: ${stats.lastUpdate}`;
-  }
+  // 简洁描述
+  const description = '自动抓取线报酷最新羊毛线报，仅显示增量更新';
   
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
