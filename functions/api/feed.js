@@ -213,9 +213,8 @@ function parseTime(timeStr) {
  * 获取当前北京时间（Asia/Shanghai）
  */
 function getChinaTime() {
-  // 使用 toLocaleString 转换为北京时间字符串，然后创建 Date 对象
-  const chinaTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' });
-  return new Date(chinaTimeStr);
+  // 直接返回当前时间（服务器时间）
+  return new Date();
 }
 
 /**
@@ -516,6 +515,7 @@ function extractCommentLinks(html) {
  * 批量获取文章详情页内容
  */
 async function fetchDetailsForPosts(posts) {
+  console.log(`开始获取${posts.length}篇文章的详情页`);
   return await Promise.all(
     posts.map(async (post) => {
       try {
@@ -524,6 +524,9 @@ async function fetchDetailsForPosts(posts) {
           post.content = detail.content;
           post.links = detail.links;
           post.images = detail.images;
+          console.log(`✓ 获取详情成功: ${post.title.substring(0, 30)}...`);
+        } else {
+          console.log(`✗ 获取详情失败: ${post.title.substring(0, 30)}...`);
         }
         return post;
       } catch (error) {

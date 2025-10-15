@@ -211,8 +211,8 @@ function calculateQualityScore(title, content, category, comments, timeStr) {
  * 获取当前北京时间（Asia/Shanghai）
  */
 function getChinaTime() {
-  const chinaTimeStr = new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' });
-  return new Date(chinaTimeStr);
+  // 直接返回当前时间（服务器时间）
+  return new Date();
 }
 
 /**
