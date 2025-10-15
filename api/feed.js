@@ -45,6 +45,13 @@ export default async function handler(req, res) {
       posts = allPosts.filter(post => !publishedLinks.has(post.link));
       newCount = posts.length;
       
+      // 如果没有新文章，返回最近20条（避免RSS为空）
+      if (posts.length === 0) {
+        console.log('没有新文章，返回最近20条');
+        posts = allPosts.slice(0, 20);
+        newCount = 0;
+      }
+      
       // 将所有新文章添加到已发布集合
       posts.forEach(post => publishedLinks.add(post.link));
       
@@ -57,7 +64,7 @@ export default async function handler(req, res) {
       // 保存到持久化存储
       await savePublishedLinks(publishedLinks, Date.now());
       
-      // 增量模式：获取所有新线报的详情页
+      // 获取所有文章的详情页
       posts = await fetchDetailsForPosts(posts);
     } else {
       // showAll模式：获取详情
