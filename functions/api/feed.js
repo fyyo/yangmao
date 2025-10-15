@@ -270,9 +270,17 @@ function decodeHtmlEntities(text) {
  * 生成RSS 2.0格式的XML
  */
 function generateRSS(posts, stats = {}) {
-  // 使用统一的刷新时间
+  // 使用统一的刷新时间，转换为北京时间字符串
   const refreshTime = stats.refreshTime ? new Date(stats.refreshTime) : getChinaTime();
-  const now = refreshTime.toUTCString();
+  
+  // 格式化为RFC 822格式的北京时间
+  const year = refreshTime.getFullYear();
+  const month = String(refreshTime.getMonth() + 1).padStart(2, '0');
+  const day = String(refreshTime.getDate()).padStart(2, '0');
+  const hour = String(refreshTime.getHours()).padStart(2, '0');
+  const minute = String(refreshTime.getMinutes()).padStart(2, '0');
+  const second = String(refreshTime.getSeconds()).padStart(2, '0');
+  const chinaTimeStr = `${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`;
   
   // 简洁描述
   const description = '自动抓取线报酷最新羊毛线报，仅显示增量更新';
@@ -284,18 +292,25 @@ function generateRSS(posts, stats = {}) {
     <link>https://new.ixbk.net/</link>
     <description>${description}</description>
     <language>zh-CN</language>
-    <lastBuildDate>${now}</lastBuildDate>
+    <lastBuildDate>${chinaTimeStr}</lastBuildDate>
     <atom:link href="/api/feed" rel="self" type="application/rss+xml"/>
 `;
 
   for (const post of posts) {
-    const pubDate = post.pubDate.toUTCString();
+    // 格式化文章发布时间为北京时间
+    const pYear = post.pubDate.getFullYear();
+    const pMonth = String(post.pubDate.getMonth() + 1).padStart(2, '0');
+    const pDay = String(post.pubDate.getDate()).padStart(2, '0');
+    const pHour = String(post.pubDate.getHours()).padStart(2, '0');
+    const pMinute = String(post.pubDate.getMinutes()).padStart(2, '0');
+    const pSecond = String(post.pubDate.getSeconds()).padStart(2, '0');
+    const pubDate = `${pYear}-${pMonth}-${pDay}T${pHour}:${pMinute}:${pSecond}+08:00`;
     
     // 格式化内容为简洁的HTML（CDATA内部不需要转义HTML标签，只转义文本内容）
     let contentHtml = '';
     
     // 分类
-    contentHtml += `<p><strong>📂 分类：</strong>${htmlEscape(post.category)}</p>`;
+    contentHtml += `<p><strong>分类：</strong>${htmlEscape(post.category)}</p>`;
     contentHtml += `<hr/>`;
     
     // 主要内容
@@ -305,7 +320,7 @@ function generateRSS(posts, stats = {}) {
     
     // 图片
     if (post.images && post.images.length > 0) {
-      contentHtml += `<p><strong>📷 图片：</strong></p>`;
+      contentHtml += `<p><strong>图片：</strong></p>`;
       post.images.forEach((img, i) => {
         contentHtml += `<p><img src="${htmlEscape(img)}" alt="图片${i+1}" style="max-width:100%;height:auto;"/></p>`;
       });
@@ -314,7 +329,7 @@ function generateRSS(posts, stats = {}) {
     // 评论区补充
     if (post.links && post.links.length > 0) {
       contentHtml += `<hr/>`;
-      contentHtml += `<p><strong>💬 评论区补充信息：</strong></p>`;
+      contentHtml += `<p><strong>评论区补充信息：</strong></p>`;
       post.links.forEach(link => {
         contentHtml += `<p>• ${htmlEscape(link)}</p>`;
       });
@@ -322,7 +337,7 @@ function generateRSS(posts, stats = {}) {
     
     // 原文链接
     contentHtml += `<hr/>`;
-    contentHtml += `<p><a href="${htmlEscape(post.link)}">🔗 查看原文</a></p>`;
+    contentHtml += `<p><a href="${htmlEscape(post.link)}">查看原文</a></p>`;
     
     xml += `
     <item>

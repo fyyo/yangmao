@@ -128,14 +128,13 @@ async function parseHtml(html) {
     }
   }
   
-  // 直接按时间排序，不过滤质量
-  const filteredPosts = posts
-    .sort((a, b) => new Date(b.publish_time) - new Date(a.publish_time))
-    .slice(0, 20); // 先取20条，因为要爬详情页
+  // 直接按时间排序，返回所有文章
+  const sortedPosts = posts
+    .sort((a, b) => new Date(b.publish_time) - new Date(a.publish_time));
   
   // 并发获取详情页内容
   const postsWithDetail = await Promise.all(
-    filteredPosts.map(async (post) => {
+    sortedPosts.map(async (post) => {
       try {
         const detail = await fetchDetailContent(post.url);
         if (detail) {
