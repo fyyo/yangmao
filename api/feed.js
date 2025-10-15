@@ -256,17 +256,15 @@ function decodeHtmlEntities(text) {
  * 生成RSS 2.0格式的XML
  */
 function generateRSS(posts, stats = {}) {
-  // 使用统一的刷新时间，转换为北京时间字符串
+  // 使用统一的刷新时间，格式化为北京时间字符串
   const refreshTime = stats.refreshTime ? new Date(stats.refreshTime) : getChinaTime();
-  
-  // 格式化为RFC 822格式的北京时间
   const year = refreshTime.getFullYear();
   const month = String(refreshTime.getMonth() + 1).padStart(2, '0');
   const day = String(refreshTime.getDate()).padStart(2, '0');
   const hour = String(refreshTime.getHours()).padStart(2, '0');
   const minute = String(refreshTime.getMinutes()).padStart(2, '0');
   const second = String(refreshTime.getSeconds()).padStart(2, '0');
-  const chinaTimeStr = `${year}-${month}-${day}T${hour}:${minute}:${second}+08:00`;
+  const lastBuildDate = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
   
   // 简洁描述
   const description = '自动抓取线报酷最新羊毛线报，仅显示增量更新';
@@ -278,7 +276,7 @@ function generateRSS(posts, stats = {}) {
     <link>https://new.ixbk.net/</link>
     <description>${description}</description>
     <language>zh-CN</language>
-    <lastBuildDate>${chinaTimeStr}</lastBuildDate>
+    <lastBuildDate>${lastBuildDate}</lastBuildDate>
     <atom:link href="/api/feed" rel="self" type="application/rss+xml"/>
 `;
 
@@ -290,7 +288,7 @@ function generateRSS(posts, stats = {}) {
     const pHour = String(post.pubDate.getHours()).padStart(2, '0');
     const pMinute = String(post.pubDate.getMinutes()).padStart(2, '0');
     const pSecond = String(post.pubDate.getSeconds()).padStart(2, '0');
-    const pubDate = `${pYear}-${pMonth}-${pDay}T${pHour}:${pMinute}:${pSecond}+08:00`;
+    const pubDate = `${pYear}-${pMonth}-${pDay} ${pHour}:${pMinute}:${pSecond}`;
     
     // 格式化内容为简洁的HTML（CDATA内部不需要转义HTML标签，只转义文本内容）
     let contentHtml = '';
