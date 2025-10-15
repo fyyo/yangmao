@@ -183,13 +183,10 @@ function parseTime(timeStr) {
     // 获取当前北京时间
     const chinaTime = getChinaTime();
     
-    // 创建今天的日期对象
-    const pubDate = new Date(chinaTime);
-    pubDate.setHours(hour, minute, 0, 0);
+    // 设置时间
+    chinaTime.setHours(hour, minute, 0, 0);
     
-    // 线报酷的时间都是今天的，不需要判断昨天
-    
-    return pubDate;
+    return chinaTime;
   }
   
   return getChinaTime();
@@ -199,11 +196,10 @@ function parseTime(timeStr) {
  * 获取当前北京时间（Asia/Shanghai）
  */
 function getChinaTime() {
-  // Cloudflare Workers运行在UTC时区，需要转换为北京时间（UTC+8）
   const now = new Date();
-  const utcTime = now.getTime();
-  const chinaTime = new Date(utcTime + 8 * 60 * 60 * 1000);
-  return chinaTime;
+  // 使用toLocaleString获取北京时间字符串，然后转回Date对象
+  const beijingTimeStr = now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' });
+  return new Date(beijingTimeStr);
 }
 
 /**
