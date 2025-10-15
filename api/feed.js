@@ -3,7 +3,7 @@
  * 路径: /api/feed
  */
 
-import { getPublishedLinks, savePublishedLinks, resetPublishedLinks } from '../src/storage/persistence.js';
+import { getPublishedPosts, savePublishedPosts, resetPublishedPosts } from '../src/storage/persistence.js';
 
 export default async function handler(req, res) {
   try {
@@ -24,59 +24,46 @@ export default async function handler(req, res) {
 
     // 重置已发布记录
     if (reset) {
-      await resetPublishedLinks();
+      await resetPublishedPosts();
       return res.status(200).json({ message: '已重置发布记录' });
     }
 
-    // 读取已发布的链接
-    const storage = await getPublishedLinks();
-    let publishedLinks = storage.links;
-    const lastUpdate = storage.lastUpdate;
+    // 读取上次刷新的时间点和链接记录
+    const storage = await getPublishedPosts();
+    const lastRefreshTime = storage.lastUpdate;
+    const publishedLinks = new Set(storage.posts.map(p => p.link));
+    
+    console.log(`⏰ 上次刷新时间: ${new Date(lastRefreshTime).toLocaleString('zh-CN')}`);
 
-    // 爬取线报酷数据
-    const allPosts = await fetchIxbkPosts();
+    // 爬取线报酷第一页数据
+    const freshPosts = await fetchIxbkPosts();
+    console.log(`🆕 从线报酷抓取到 ${freshPosts.length} 篇文章`);
     
-    // 过滤出新文章（未发布过的）
-    let posts = allPosts;
-    let newCount = 0;
+    // 过滤出新文章（自上次刷新后的新文章）
+    const newPosts = freshPosts.filter(post => !publishedLinks.has(post.link));
+    const newCount = newPosts.length;
     
-    if (!showAll) {
-      // 过滤出新文章
-      posts = allPosts.filter(post => !publishedLinks.has(post.link));
-      newCount = posts.length;
+    console.log(`✨ 发现 ${newCount} 篇新文章（上次刷新后）`);
+    
+    let posts = [];
+    
+    // 如果有新文章，获取详情页
+    if (newCount > 0) {
+      posts = await fetchDetailsForPosts(newPosts);
       
-      // 如果没有新文章，返回最近20条（避免RSS为空）
-      if (posts.length === 0) {
-        console.log('没有新文章，返回最近20条');
-        posts = allPosts.slice(0, 20);
-        newCount = 0;
-      }
+      // 更新已发布记录：保存当前所有文章（用于下次判断）
+      await savePublishedPosts(freshPosts, Date.now());
       
-      // 将所有新文章添加到已发布集合
-      posts.forEach(post => publishedLinks.add(post.link));
-      
-      // 限制存储大小（最多保留800条）
-      if (publishedLinks.size > 800) {
-        const linksArray = Array.from(publishedLinks);
-        publishedLinks = new Set(linksArray.slice(-800));
-      }
-      
-      // 保存到持久化存储
-      await savePublishedLinks(publishedLinks, Date.now());
-      
-      // 获取所有文章的详情页
-      posts = await fetchDetailsForPosts(posts);
+      console.log(`📤 RSS源返回 ${posts.length} 篇新文章`);
     } else {
-      // showAll模式：获取详情
-      posts = await fetchDetailsForPosts(posts);
+      console.log(`📤 没有新文章，RSS源为空`);
     }
     
-    // 生成RSS XML（带统计信息）
+    // 生成RSS XML（只包含新文章）
     const rssXml = generateRSS(posts, {
-      showAll,
+      showAll: false,
       newCount,
-      totalTracked: publishedLinks.size,
-      lastUpdate: new Date(lastUpdate).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })
+      lastUpdate: new Date(lastRefreshTime).toLocaleString('zh-CN')
     });
     
     // 动态缓存时间：60-600秒（1-10分钟）
@@ -275,17 +262,12 @@ function generateRSS(posts, stats = {}) {
   const now = chinaTime.toUTCString();
   
   // 构建描述信息
-  let description = '自动抓取线报酷最新羊毛线报，实时更新';
-  if (stats.showAll) {
-    description += ` | 显示全部 ${posts.length} 条`;
-  } else if (stats.newCount !== undefined) {
-    description += ` | 本次更新: ${stats.newCount} 条新内容`;
-    if (stats.totalTracked) {
-      description += ` | 已追踪: ${stats.totalTracked} 条`;
-    }
-    if (stats.lastUpdate) {
-      description += ` | 上次更新: ${stats.lastUpdate}`;
-    }
+  let description = '自动抓取线报酷最新羊毛线报，仅显示增量更新';
+  if (stats.newCount !== undefined) {
+    description += ` | 本次新增: ${stats.newCount} 条`;
+  }
+  if (stats.lastUpdate) {
+    description += ` | 上次刷新: ${stats.lastUpdate}`;
   }
   
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
