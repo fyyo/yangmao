@@ -169,16 +169,17 @@ function parseTime(timeStr) {
     const hour = parseInt(match[1]);
     const minute = parseInt(match[2]);
     
-    // 获取今天的北京时间日期
-    const chinaTime = getChinaTime();
-    const year = chinaTime.getUTCFullYear();
-    const month = chinaTime.getUTCMonth();
-    const day = chinaTime.getUTCDate();
+    // 获取今天的北京时间组件
+    const { year, month, day } = getChinaTimeComponents();
     
-    // 直接用北京时间构造（因为chinaTime已经是UTC+8了）
-    const timestamp = Date.UTC(year, month, day, hour, minute, 0, 0);
+    // 构造一个伪造的Date对象，使其getUTC*方法返回北京时间
+    const monthStr = String(month).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    const hourStr = String(hour).padStart(2, '0');
+    const minuteStr = String(minute).padStart(2, '0');
     
-    return new Date(timestamp);
+    // 返回一个Date对象，但它的ISO字符串包含北京时间的数值
+    return new Date(`${year}-${monthStr}-${dayStr}T${hourStr}:${minuteStr}:00.000Z`);
   }
   
   return getChinaTime();
@@ -187,9 +188,28 @@ function parseTime(timeStr) {
 /**
  * 获取当前北京时间（Asia/Shanghai）
  */
+/**
+ * 获取当前北京时间的年月日时分秒
+ */
+function getChinaTimeComponents() {
+  const now = new Date();
+  const beijingTime = new Date(now.getTime() + 28800000);
+  
+  return {
+    year: beijingTime.getUTCFullYear(),
+    month: beijingTime.getUTCMonth() + 1,
+    day: beijingTime.getUTCDate(),
+    hour: beijingTime.getUTCHours(),
+    minute: beijingTime.getUTCMinutes(),
+    second: beijingTime.getUTCSeconds()
+  };
+}
+
+/**
+ * 获取当前北京时间（Asia/Shanghai）
+ */
 function getChinaTime() {
   const now = new Date();
-  // 获取UTC时间戳并加8小时（28800000毫秒）
   return new Date(now.getTime() + 28800000);
 }
 
