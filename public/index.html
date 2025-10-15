@@ -362,8 +362,8 @@
                     <div class="stat-value" style="font-size: 1.2rem;" id="updateTime">-</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">平均质量分</div>
-                    <div class="stat-value" id="avgScore">-</div>
+                    <div class="stat-label">数据来源</div>
+                    <div class="stat-value" style="font-size: 1.2rem;">线报酷</div>
                 </div>
             </div>
 
@@ -430,8 +430,7 @@
                     minute: '2-digit'
                 });
             
-            const avgScore = allPosts.reduce((sum, post) => sum + (post.quality_score || 0), 0) / allPosts.length;
-            document.getElementById('avgScore').textContent = avgScore.toFixed(1);
+            // 移除平均质量分
         }
 
         function generateFilters() {
@@ -498,8 +497,7 @@
         }
 
         function createPostCard(post) {
-            const score = post.quality_score || 0;
-            const scoreEmoji = score >= 90 ? '🌟' : score >= 80 ? '⭐' : score >= 70 ? '✨' : '💫';
+            // 移除质量分数显示
             
             const fullContent = post.content || '暂无详细内容';
             
@@ -530,7 +528,6 @@
                 <div class="post-card">
                     <div class="post-header">
                         <span class="post-category">${post.category || '其他'}</span>
-                        <span class="post-score">${scoreEmoji} ${score}</span>
                     </div>
                     <h3 class="post-title">${post.title}</h3>
                     <div class="post-content-full">${fullContent}</div>

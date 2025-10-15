@@ -57,11 +57,11 @@ export default async function handler(req, res) {
       // 保存到持久化存储
       await savePublishedLinks(publishedLinks, Date.now());
       
-      // 增量模式：返回所有新线报（不获取详情页，避免超时）
-      // 用户可以点击链接查看完整内容
+      // 增量模式：获取所有新线报的详情页
+      posts = await fetchDetailsForPosts(posts);
     } else {
-      // showAll模式：限制20条并获取详情
-      posts = await fetchDetailsForPosts(posts.slice(0, 20));
+      // showAll模式：获取详情
+      posts = await fetchDetailsForPosts(posts);
     }
     
     // 生成RSS XML（带统计信息）
@@ -302,15 +302,45 @@ function generateRSS(posts, stats = {}) {
 
   for (const post of posts) {
     const pubDate = post.pubDate.toUTCString();
+    
+    // 格式化内容 - 类似前端展示
+    let contentHtml = `<div style="font-family: sans-serif; line-height: 1.6;">`;
+    contentHtml += `<p><strong>📂 分类:</strong> ${escapeXml(post.category)}</p>`;
+    
+    // 主要内容
+    if (post.content) {
+      contentHtml += `<div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0;">`;
+      contentHtml += `<pre style="white-space: pre-wrap; word-wrap: break-word; margin: 0;">${escapeXml(post.content)}</pre>`;
+      contentHtml += `</div>`;
+    }
+    
+    // 图片
+    if (post.images && post.images.length > 0) {
+      contentHtml += `<p><strong>📷 图片:</strong></p>`;
+      post.images.forEach((img, i) => {
+        contentHtml += `<p><img src="${escapeXml(img)}" alt="图片${i+1}" style="max-width: 100%; height: auto; border-radius: 8px;"/></p>`;
+      });
+    }
+    
+    // 评论区补充
+    if (post.links && post.links.length > 0) {
+      contentHtml += `<div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin-top: 15px;">`;
+      contentHtml += `<p style="font-weight: bold; color: #92400e;">💬 评论区补充信息:</p>`;
+      contentHtml += `<div style="color: #78350f; font-size: 0.9em;">`;
+      post.links.forEach(link => {
+        contentHtml += `<p style="margin: 5px 0;">${escapeXml(link)}</p>`;
+      });
+      contentHtml += `</div></div>`;
+    }
+    
+    contentHtml += `<p style="margin-top: 20px;"><a href="${escapeXml(post.link)}" target="_blank" style="color: #3b82f6; text-decoration: none;">🔗 查看原文 →</a></p>`;
+    contentHtml += `</div>`;
+    
     xml += `
     <item>
       <title><![CDATA[${post.title}]]></title>
       <link>${escapeXml(post.link)}</link>
-      <description><![CDATA[
-        <p><strong>分类:</strong> ${post.category}</p>
-        <p>${post.content}</p>
-        <p><a href="${escapeXml(post.link)}" target="_blank">查看详情 →</a></p>
-      ]]></description>
+      <description><![CDATA[${contentHtml}]]></description>
       <category>${post.category}</category>
       <pubDate>${pubDate}</pubDate>
       <guid isPermaLink="true">${escapeXml(post.link)}</guid>
@@ -395,11 +425,12 @@ async function fetchDetailContent(url) {
     
     // 提取评论区链接
     const commentLinks = extractCommentLinks(html);
-    if (commentLinks.length > 0) {
-      content += '\n\n💬 评论区补充:\n' + commentLinks.join('\n');
-    }
     
-    return content || '无详细内容';
+    return {
+      content: content || '无详细内容',
+      links: commentLinks,
+      images: images
+    };
   } catch (error) {
     console.error('获取详情页失败:', error);
     return null;
@@ -477,7 +508,9 @@ async function fetchDetailsForPosts(posts) {
       try {
         const detail = await fetchDetailContent(post.link);
         if (detail) {
-          post.content = detail;
+          post.content = detail.content;
+          post.links = detail.links;
+          post.images = detail.images;
         }
         return post;
       } catch (error) {
