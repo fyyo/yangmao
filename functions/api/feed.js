@@ -45,13 +45,11 @@ export async function onRequest(context) {
     let newCount = 0;
     
     if (!showAll) {
+      // 过滤出新文章
       posts = allPosts.filter(post => !publishedLinks.has(post.link));
       newCount = posts.length;
       
-      // 限制返回数量为20条（但会记录所有新文章）
-      const postsToReturn = posts.slice(0, 20);
-      
-      // 将所有新文章添加到已发布集合（不只是返回的20条）
+      // 将所有新文章添加到已发布集合
       posts.forEach(post => publishedLinks.add(post.link));
       
       // 限制存储大小（最多保留800条）
@@ -63,8 +61,8 @@ export async function onRequest(context) {
       // 保存到持久化存储
       await savePublishedLinks(publishedLinks, Date.now(), context.env);
       
-      // 并发获取前20条的详情页内容
-      posts = await fetchDetailsForPosts(postsToReturn);
+      // 增量模式：返回所有新线报（不获取详情页，避免超时）
+      // 用户可以点击链接查看完整内容
     } else {
       // showAll模式：限制20条并获取详情
       posts = await fetchDetailsForPosts(posts.slice(0, 20));
