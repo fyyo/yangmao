@@ -188,8 +188,11 @@ function parseTime(timeStr) {
  * 获取当前北京时间（Asia/Shanghai）
  */
 function getChinaTime() {
-  // 直接返回当前时间（服务器时间）
-  return new Date();
+  // Cloudflare Workers运行在UTC时区，需要转换为北京时间（UTC+8）
+  const now = new Date();
+  const utcTime = now.getTime();
+  const chinaTime = new Date(utcTime + 8 * 60 * 60 * 1000);
+  return chinaTime;
 }
 
 /**
